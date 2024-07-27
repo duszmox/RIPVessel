@@ -45,7 +45,9 @@ struct LoginView: View {
                 }
             
             Button("Login", action: {
-                vm.login()
+                Task {
+                   await vm.login()
+                }
             })
         }.padding()
     }

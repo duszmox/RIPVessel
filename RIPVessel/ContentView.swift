@@ -9,59 +9,24 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-    @State var text: String = ""
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text(text)
-                    } label: {
-                        Text(text)
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }.onAppear() {
+        Button {
             Task {
                 do {
-                    text = try await AuthClient().getCaptcha()
-                } catch {
+                   try await AuthService.shared.logout()
+                }
+                catch {
                     print("Error: \(error)")
                 }
             }
+        } label: {
+            Text(UserDefaultsService.shared.user!.id)
         }
+
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
-    }
+  
 }
 
 #Preview {

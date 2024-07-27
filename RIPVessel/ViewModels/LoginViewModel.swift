@@ -12,8 +12,13 @@ extension LoginView {
         @Published var username: String = ""
         @Published var password: String = ""
         
-        func login() {
-            
+        func login() async {
+            do {
+                try await AuthService.shared.signIn(username: username, password: password)
+            }
+            catch {
+                print("Error: \(error)")
+            }
         }
     }
 }
