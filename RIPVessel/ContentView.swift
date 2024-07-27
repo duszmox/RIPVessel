@@ -11,15 +11,16 @@ import SwiftData
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [Item]
+    @State var text: String = ""
 
     var body: some View {
         NavigationSplitView {
             List {
                 ForEach(items) { item in
                     NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
+                        Text(text)
                     } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                        Text(text)
                     }
                 }
                 .onDelete(perform: deleteItems)
@@ -36,6 +37,14 @@ struct ContentView: View {
             }
         } detail: {
             Text("Select an item")
+        }.onAppear() {
+            Task {
+                do {
+                    text = try await AuthClient().getCaptcha()
+                } catch {
+                    print("Error: \(error)")
+                }
+            }
         }
     }
 
