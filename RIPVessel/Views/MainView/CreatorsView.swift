@@ -8,7 +8,7 @@
 import SwiftUI
 import SwiftData
 
-struct HomeView: View {
+struct CreatorsView: View {
     @StateObject private var vm = ViewModel()
     
     var body: some View {
@@ -31,26 +31,36 @@ struct HomeView: View {
                 }
             }
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 16) {
                     if vm.creators.isEmpty {
                         Text("Loading...")
                             .font(.headline)
                     }
                     ForEach(vm.creators, id: \.id) { creator in
-                        Text(creator.title)
+                        HStack {
+                            IconView(url: creator.icon.path, size: CGSize(width: 44, height: 44)).clipShape(Circle())
+                            Text(creator.title)
+                        }
+                        ForEach(creator.channels, id: \.id) { channel in
+                            HStack {
+                                IconView(url: channel.icon.path, size: CGSize(width: 33, height: 33)).clipShape(Circle())
+                                Text(channel.title)
+                            }.padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
+                        }
+
                     }
                 }
-            }
+            }.frame(alignment: .leading)
             
             
         }.onAppear {
             Task {
-                await vm.fetchCreators()
+                await vm.fetchSubscriptions()
             }
         }
     }
 }
 
 #Preview {
-    HomeView()
+    CreatorsView()
 }

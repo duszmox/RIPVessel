@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		46A9C7AB2C551756007A41E8 /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 46A9C7AA2C551756007A41E8 /* OpenAPIRuntime */; };
 		46A9C7AE2C551765007A41E8 /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = 46A9C7AD2C551765007A41E8 /* OpenAPIURLSession */; };
+		46F8B9A82C564A2B00568CF8 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 46F8B9A72C564A2B00568CF8 /* Logging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46F8B9A82C564A2B00568CF8 /* Logging in Frameworks */,
 				46A9C7AE2C551765007A41E8 /* OpenAPIURLSession in Frameworks */,
 				46A9C7AB2C551756007A41E8 /* OpenAPIRuntime in Frameworks */,
 			);
@@ -71,6 +73,7 @@
 			packageProductDependencies = (
 				46A9C7AA2C551756007A41E8 /* OpenAPIRuntime */,
 				46A9C7AD2C551765007A41E8 /* OpenAPIURLSession */,
+				46F8B9A72C564A2B00568CF8 /* Logging */,
 			);
 			productName = RIPVessel;
 			productReference = 46C95CE82C5513DA00B116D0 /* RIPVessel.app */;
@@ -104,6 +107,7 @@
 				46A9C7A72C551728007A41E8 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */,
 				46A9C7A92C551756007A41E8 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
 				46A9C7AC2C551765007A41E8 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
+				46F8B9A62C564A2B00568CF8 /* XCRemoteSwiftPackageReference "swift-log" */,
 			);
 			productRefGroup = 46C95CE92C5513DA00B116D0 /* Products */;
 			projectDirPath = "";
@@ -369,6 +373,14 @@
 				minimumVersion = 1.0.2;
 			};
 		};
+		46F8B9A62C564A2B00568CF8 /* XCRemoteSwiftPackageReference "swift-log" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-log.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -386,6 +398,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 46A9C7A72C551728007A41E8 /* XCRemoteSwiftPackageReference "swift-openapi-generator" */;
 			productName = "plugin:OpenAPIGenerator";
+		};
+		46F8B9A72C564A2B00568CF8 /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 46F8B9A62C564A2B00568CF8 /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

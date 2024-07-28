@@ -22,7 +22,7 @@ struct MainView: View {
 
     var body: some View {
            if auth.loggedIn {
-               HomeView()
+               RecentsView()
            } else {
                LoginView()
            }

@@ -33,7 +33,7 @@ class AuthService: ObservableObject {
     }
     
     func logout() async throws {
-        let response = try await ApiService.shared.client.logout()
+        _ = try await ApiService.shared.client.logout()
         DispatchQueue.main.async {
             UserDefaultsService.shared.user = nil
             self.loggedIn = false

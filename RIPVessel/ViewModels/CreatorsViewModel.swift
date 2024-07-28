@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension HomeView {
+extension CreatorsView {
     class ViewModel: ObservableObject {
         @Published var creators: [Components.Schemas.CreatorModelV3]
         
@@ -17,11 +17,9 @@ extension HomeView {
         
         func fetchCreators() async {
             do {
-                // TODO: Open an issue to have it set to optional
-                let result = try await ApiService.shared.client.getCreators(Operations.getCreators.Input(query: Operations.getCreators.Input.Query(search: "")))
-                let c = try result.ok.body.json
+                let result = try await CreatorClient.shared.getCreators()
                 DispatchQueue.main.async {
-                    self.creators = c
+                    self.creators = result
                 }
             }
             catch {
@@ -29,5 +27,18 @@ extension HomeView {
             }
             
         }
+
+        func fetchSubscriptions() async {
+            
+            do {
+                let result = try await CreatorClient.shared.getSubscribedCreators()
+                DispatchQueue.main.async {
+                    self.creators = result
+                }
+            } catch {
+                print("Error: \(error)")
+            }
+        }
+
     }
 }
