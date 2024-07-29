@@ -5,14 +5,6 @@
 //  Created by Gyula Kiri on 2024. 07. 28..
 //
 
-//
-//  IconService.swift
-//  BKK
-//
-//  Created by RC MAC on 2022. 08. 05..
-//  Copyright © 2022. realCity ITS Kft. All rights reserved.
-//
-
 import Foundation
 import SwiftUI
 import Combine

@@ -30,15 +30,10 @@ struct RecentsView: View {
                         .font(.headline)
                 }
                 ForEach(vm.recents, id: \.id) { recent in
-                    VStack {
-                        if recent.thumbnail != nil {
-                            IconView(url: recent.thumbnail!.value1.path).aspectRatio(1.7777777778, contentMode: .fit)
-                        }
-                        Text(recent.title)
-                    }.onAppear {
+                    RecentPostView(post: recent)
+                        .onAppear {
                         Task {
                             if recent.id == vm.recents.last?.id {
-                                //                            print(recent.title)
                                 await vm.fetchRecents()
                             }
                         }

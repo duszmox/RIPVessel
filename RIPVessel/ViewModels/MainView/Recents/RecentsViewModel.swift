@@ -21,7 +21,9 @@ extension RecentsView {
 
                 if refresh {
                     offset = 0
-                    self.recents = []
+                    DispatchQueue.main.async {
+                        self.recents = []
+                    }
                 }
                 for creator in creators {
                     let task = Task {
@@ -38,7 +40,6 @@ extension RecentsView {
                     }
                     tasks.append(task)
                 }
-                offset += 10
 
                 for task in tasks {
                     await task.value
@@ -49,12 +50,16 @@ extension RecentsView {
                 flattenedRecents.sort { $0.releaseDate > $1.releaseDate }
 
                 for recent in flattenedRecents {
+                    if let thubnail = recent.thumbnail {
+                        IconService.shared.fetchIcon(url: thubnail.value1.path)
+                    }
                     await recentsStorageFlat.add(item: recent)
                 }
 
                 let sortedRecents = await recentsStorageFlat.getAll()
                 DispatchQueue.main.async {
                     self.recents.append(contentsOf: sortedRecents)
+                    self.offset += 10
                 }
             } catch {
                 print("Error: \(error)")

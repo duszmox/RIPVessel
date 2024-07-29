@@ -19,7 +19,7 @@ public class ApiService {
     var logger = Logger(label: "HelloWorldURLSessionClient")
 
     public init() {
-        self.logger.logLevel = .debug
+//        self.logger.logLevel = .debug
         do {
             client = Client(
                 serverURL: try Servers.server1(),

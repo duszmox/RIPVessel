@@ -19,10 +19,18 @@ struct RIPVesselApp: App {
 
 struct MainView: View {
     @EnvironmentObject var auth: AuthService
+    @StateObject private var router = Router.shared
 
     var body: some View {
            if auth.loggedIn {
-               RecentsView()
+               NavigationStack(path: $router.navPath) {
+               RecentsView().navigationDestination(for: Router.Destination.self) { destination in
+                   switch destination {
+                   case .video(let post):
+                       VideoView(post: post)
+                   }
+               }
+               }
            } else {
                LoginView()
            }
