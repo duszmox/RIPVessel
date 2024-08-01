@@ -31,8 +31,8 @@ struct VideoView: View {
                 .font(.title)
                 .bold()
                 .padding()
-            Text(vm.post.text)
-                
+
+            WebView(text: $vm.post.text)
             Picker("Select Quality", selection: $vm.currentQuality) {
                 ForEach(vm.qualities, id: \.self) { quality in
                     Text(quality.label).tag(quality as Components.Schemas.CdnDeliveryV3Variant)

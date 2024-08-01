@@ -28,6 +28,8 @@ struct VideoPlayerWrapperView: View {
     @State var size: CGSize
     @State var safeArea: EdgeInsets
     
+    @State private var isObserverAdded: Bool = false
+    
     init(videoURL: String, currentQuality: Binding<Components.Schemas.CdnDeliveryV3Variant?>, size: CGSize = .zero, safeArea: EdgeInsets = .init()) {
         
         self.videoURL = videoURL
@@ -51,7 +53,18 @@ struct VideoPlayerWrapperView: View {
                     .animation(.easeInOut(duration: 0.35), value: isDragging)
                     .overlay {
                         PlayerControls()
-                    }
+                    }.overlay(content: {
+                        HStack (spacing: 60) {
+                            DoubleTapSeek {
+                                let seconds = player.currentTime().seconds - 15
+                                player.seek(to: CMTime(seconds: seconds, preferredTimescale: 1))
+                            }
+                            DoubleTapSeek(isForward: true) {
+                                let seconds = player.currentTime().seconds + 15
+                                player.seek(to: CMTime(seconds: seconds, preferredTimescale: 1))
+                            }
+                        }
+                    })
             }.onTapGesture {
                 withAnimation(.easeInOut(duration: 0.35)) {
                     showPlayerControls.toggle()
@@ -63,6 +76,9 @@ struct VideoPlayerWrapperView: View {
                 VideoSeekerView()
             }
         }.onAppear {
+            guard !isObserverAdded else {
+                return
+            }
             player.addPeriodicTimeObserver(forInterval: .init(seconds: 1, preferredTimescale: 1), queue: .main) { time in
                 if let currentPlayerItem = player.currentItem {
                     let totalDuration = currentPlayerItem.duration.seconds
@@ -77,6 +93,7 @@ struct VideoPlayerWrapperView: View {
                     }
                 }
             }
+            isObserverAdded = true
             isPlaying.toggle()
         }.onDisappear {
             player.pause()
@@ -105,13 +122,13 @@ struct VideoPlayerWrapperView: View {
             } label: {
                 Image(systemName: "gobackward.10")
                     .font(.title)
-                    .fontWeight(.ultraLight)
+//                    .fontWeight(.ultraLight)
                     .foregroundColor(.white)
                     .padding(15).background {
                         Circle()
                             .fill(Color.black.opacity(0.35))
                         
-                    }.scaleEffect(1.1)
+                    }
             }
  Button {
      withAnimation(.easeOut(duration: 0.2)) {
@@ -161,13 +178,13 @@ struct VideoPlayerWrapperView: View {
             } label: {
                 Image(systemName: "goforward.10")
                     .font(.title)
-                    .fontWeight(.ultraLight)
+//                    .fontWeight(.ultraLight)
                     .foregroundColor(.white)
                     .padding(15).background {
                         Circle()
                             .fill(Color.black.opacity(0.35))
                         
-                    }.scaleEffect(1.1)
+                    }
             }
 
         }.opacity(showPlayerControls && !isDragging ? 1 : 0)
