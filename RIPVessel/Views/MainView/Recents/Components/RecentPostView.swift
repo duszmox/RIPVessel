@@ -44,7 +44,9 @@ struct RecentPostView: View {
                 }
                 Text(vm.post.title)
             }.onTapGesture {
-                router.navigate(to: .video(post: vm.post))
+                if !(vm.post.videoAttachments?.isEmpty ?? true) {
+                    router.navigate(to: .video(post: vm.post))
+                }
             }
     }
 }

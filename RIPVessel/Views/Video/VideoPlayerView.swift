@@ -29,6 +29,7 @@ struct VideoPlayerView: UIViewControllerRepresentable {
 
             addObservers(to: controller.player!.currentItem!, context: context)
         }
+        try! AVAudioSession.sharedInstance().setCategory(.playback)
         return controller
     }
 

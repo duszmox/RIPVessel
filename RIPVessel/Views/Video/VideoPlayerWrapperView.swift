@@ -30,7 +30,8 @@ struct VideoPlayerWrapperView: View {
     
     @State private var isObserverAdded: Bool = false
     
-    init(videoURL: String, currentQuality: Binding<Components.Schemas.CdnDeliveryV3Variant?>, size: CGSize = .zero, safeArea: EdgeInsets = .init()) {
+    @Binding private var isRotated: Bool
+    init(videoURL: String, currentQuality: Binding<Components.Schemas.CdnDeliveryV3Variant?>, size: CGSize = .zero, safeArea: EdgeInsets = .init(), isRotated: Binding<Bool>) {
         
         self.videoURL = videoURL
         _currentQuality = currentQuality
@@ -42,9 +43,11 @@ struct VideoPlayerWrapperView: View {
         let player = AVPlayer(playerItem: item)
         player.usesExternalPlaybackWhileExternalScreenIsActive = true
         self.player = player
+        _isRotated = isRotated
     }
     
     var body: some View {
+        let videoPlayerSize: CGSize = .init(width: isRotated ? size.height : size.width, height: isRotated ? size.width : (size.height/3.5))
         ZStack {
             VideoPlayerView(url: URL(string: videoURL)!, play: $isPlaying, currentQuality: $currentQuality, isBuffering: $isBuffering, player: player, progress: $progress).overlay {
                 Rectangle()
@@ -73,9 +76,33 @@ struct VideoPlayerWrapperView: View {
                     timeoutControls()
                 }
             }.overlay(alignment: .bottom) {
-                VideoSeekerView()
+                VideoSeekerView().offset(y: isRotated ? -15 : 0)
             }
-        }.onAppear {
+        }.background {
+            Rectangle().fill(.black).padding(.trailing, isRotated ? -safeArea.bottom : 0)
+        }
+        .gesture(DragGesture().onEnded({ value in
+            if -value.translation.height > 100 {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isRotated = true
+            }
+                guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                    windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+            } else {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isRotated = false
+                }
+                guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+            }
+        }))
+        .frame(width: videoPlayerSize.width, height: videoPlayerSize.height)
+        .frame(width: size.width, height: size.height/3.5)
+        .offset(y: isRotated ? (size.width/3.5-(safeArea.bottom/2)) : 0)
+//        .rotationEffect(.init(degrees: isRotated ? 90 : 0), anchor: .topLeading)
+        .zIndex(10000)
+        .onAppear {
+            AppDelegate.orientationLock = .allButUpsideDown
             guard !isObserverAdded else {
                 return
             }
@@ -97,7 +124,7 @@ struct VideoPlayerWrapperView: View {
             isPlaying.toggle()
         }.onDisappear {
             player.pause()
-        }
+        }.navigationBarBackButtonHidden(isRotated)
     }
     
     @ViewBuilder
