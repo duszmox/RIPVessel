@@ -82,7 +82,7 @@ struct VideoPlayerWrapperView: View {
                 VideoSeekerView().offset(y: isRotated ? -15 : 0)
             }.overlay(alignment: .bottom) {
                 BottomControls().offset(y: isRotated ? -15 : -0)
-            }.ignoresSafeArea(edges: isRotated ? [.vertical] : [])
+            }
         }.background {
             Rectangle().fill(.black)
         }
@@ -101,9 +101,9 @@ struct VideoPlayerWrapperView: View {
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
             }
         }))
-        .frame(width: videoPlayerSize.width, height: videoPlayerSize.height)
-        .frame(width: size.width, height: size.height/3.5)
-        //        .rotationEffect(.init(degrees: isRotated ? 90 : 0), anchor: .topLeading)
+        .frame(width: videoPlayerSize.width)
+        .frame(width: size.width)
+        .offset(y: isRotated ? 10 : 0)
         .zIndex(10000)
         .onAppear {
             AppDelegate.orientationLock = .allButUpsideDown
@@ -220,7 +220,7 @@ struct VideoPlayerWrapperView: View {
             }.padding(.trailing, 8)
                 .frame(width: 50, height: 50)
                 .contentShape(Rectangle())
-        }.opacity(showPlayerControls && !isDragging ? 1 : 0).animation(.easeInOut(duration: 0.2), value: showPlayerControls && !isDragging)
+        }.opacity(showPlayerControls ? 1 : isSeeking ? 1 : 0).animation(.easeInOut(duration: 0.2), value: showPlayerControls)
             .padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: 0, trailing: isRotated ? 40 : 0))
     }
     
@@ -228,19 +228,19 @@ struct VideoPlayerWrapperView: View {
     func VideoSeekerView( ) -> some View {
         ZStack (alignment: .leading) {
             Rectangle()
-                .fill(Color.gray)
+                .fill(Color.gray).frame(width: (isRotated ? size.height : size.width))
             
             Rectangle()
-                .fill(Color.cyan).frame(width: max((progress.isNaN ? 0 : progress)*size.width, 0))
+                .fill(Color.cyan).frame(width: max((progress.isNaN ? 0 : progress)*(isRotated ? size.height : size.width), 0))
             
         }.frame(height: 3)
             .overlay (alignment: .leading) {
                 Circle().fill(.cyan)
                     .frame(width: 15, height: 15)
-                    .scaleEffect(showPlayerControls || isDragging ? 1 : 0.001, anchor: progress*size.width > 15 ? .trailing : .leading)
+                    .scaleEffect(showPlayerControls || isDragging ? 1 : 0.001, anchor: .center)
                     .frame(width: 50, height: 50)
                     .contentShape(Rectangle())
-                    .offset(x: progress*size.width)
+                    .offset(x: progress*((isRotated ? size.height : size.width)-15))
                     .gesture(
                         DragGesture().updating($isDragging, body: { _, out, _ in
                             out = true
@@ -250,15 +250,20 @@ struct VideoPlayerWrapperView: View {
                             }
                             
                             let transitionX = value.translation.width
-                            let newProgress = (transitionX / size.width) + lastDraggedValue
+                            let newProgress = (transitionX / ((isRotated ? size.height : size.width)-15)) + lastDraggedValue
                             
                             progress = max(min(newProgress, 1),0)
+                            if let currentPlayerItem = player.currentItem {
+                                let totalDuration = currentPlayerItem.duration.seconds
+                                currentTime = progress*totalDuration
+                            }
                             isSeeking = true
                             
                         }).onEnded({ value in
                             lastDraggedValue = progress
                             if let currentPlayerItem = player.currentItem {
                                 let totalDuration = currentPlayerItem.duration.seconds
+                                currentTime = progress*totalDuration
                                 player.seek(to: .init(seconds: totalDuration*progress, preferredTimescale: 1))
                                 if isPlaying {
                                     timeoutControls()
@@ -270,7 +275,6 @@ struct VideoPlayerWrapperView: View {
                             }
                         })
                     )
-                    .offset(x: progress*size.width > 15 ? -15 : 0)
                     .frame(width: 15, height: 15)
             }.padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: 0, trailing: isRotated ? 40 : 0))
     }

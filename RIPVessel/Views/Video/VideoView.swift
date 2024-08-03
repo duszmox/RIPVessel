@@ -24,7 +24,7 @@ struct VideoView: View {
                         .aspectRatio(16/9, contentMode: .fit).zIndex(10000)
                 }
                 VStack {
-                    IconView(url: vm.post.thumbnail!.value1.path).aspectRatio(16/9, contentMode: .fit).frame(width: geometry.size.width, height: geometry.size.height/3.5)
+                    Rectangle().aspectRatio(16/9, contentMode: .fit).frame(width: geometry.size.width, height: geometry.size.height/3.5).opacity(0)
                     Text(vm.post.title)
                         .font(.title)
                         .bold()
@@ -56,7 +56,7 @@ struct VideoView: View {
             
         }.onAppear {
             AppDelegate.orientationLock = .all // And making sure it stays that way
-        }
+        }.persistentSystemOverlays(.hidden)
     }
 }
 
