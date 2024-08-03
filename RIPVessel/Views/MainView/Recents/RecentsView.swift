@@ -27,8 +27,9 @@ struct RecentsView: View {
             ScrollView {
                 LazyVStack {
                     if vm.recents.isEmpty {
-                        Text("Loading...")
-                            .font(.headline)
+                        LoadingRecentPostView()
+                        LoadingRecentPostView()
+                        LoadingRecentPostView()
                     }
                     ForEach(vm.recents, id: \.id) { recent in
                         RecentPostView(post: recent)

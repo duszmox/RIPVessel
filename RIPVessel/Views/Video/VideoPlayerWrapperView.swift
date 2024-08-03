@@ -16,7 +16,7 @@ struct VideoPlayerWrapperView: View {
     @State var videoURL: String
     @Binding var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
     @State var player: AVPlayer
-
+    
     @State private var timeoutTask: DispatchWorkItem?
     
     @GestureState private var isDragging = false
@@ -24,6 +24,8 @@ struct VideoPlayerWrapperView: View {
     @State private var isFinishedPlaying = false
     @State private var progress: CGFloat = 0
     @State private var lastDraggedValue: CGFloat = 0
+    @State private var currentTime: Double = 0
+    @State private var duration: Double = 0
     
     @State var size: CGSize
     @State var safeArea: EdgeInsets
@@ -47,27 +49,28 @@ struct VideoPlayerWrapperView: View {
     }
     
     var body: some View {
-        let videoPlayerSize: CGSize = .init(width: isRotated ? size.height : size.width, height: isRotated ? size.width : (size.height/3.5))
-        ZStack {
+        let videoPlayerSize: CGSize = .init(width: isRotated ? size.height+safeArea.bottom+safeArea.top : size.width, height: isRotated ? size.width+safeArea.leading+safeArea.trailing : (size.height/3.5))
+        ZStack(alignment: .center) {
             VideoPlayerView(url: URL(string: videoURL)!, play: $isPlaying, currentQuality: $currentQuality, isBuffering: $isBuffering, player: player, progress: $progress).overlay {
                 Rectangle()
                     .fill(Color.black.opacity(0.5))
                     .opacity(showPlayerControls || isDragging ? 1 : 0)
                     .animation(.easeInOut(duration: 0.35), value: isDragging)
-                    .overlay {
-                        PlayerControls()
-                    }.overlay(content: {
+                    .overlay(content: {
                         HStack (spacing: 60) {
                             DoubleTapSeek {
-                                let seconds = player.currentTime().seconds - 15
-                                player.seek(to: CMTime(seconds: seconds, preferredTimescale: 1))
+                                showPlayerControls = false
+                                seek(by: -10)
                             }
                             DoubleTapSeek(isForward: true) {
-                                let seconds = player.currentTime().seconds + 15
-                                player.seek(to: CMTime(seconds: seconds, preferredTimescale: 1))
+                                showPlayerControls = false
+                                seek(by: 10)
                             }
                         }
                     })
+                    .overlay {
+                        PlayerControls()
+                    }
             }.onTapGesture {
                 withAnimation(.easeInOut(duration: 0.35)) {
                     showPlayerControls.toggle()
@@ -77,17 +80,19 @@ struct VideoPlayerWrapperView: View {
                 }
             }.overlay(alignment: .bottom) {
                 VideoSeekerView().offset(y: isRotated ? -15 : 0)
-            }
+            }.overlay(alignment: .bottom) {
+                BottomControls().offset(y: isRotated ? -15 : -0)
+            }.ignoresSafeArea(edges: isRotated ? [.vertical] : [])
         }.background {
-            Rectangle().fill(.black).padding(.trailing, isRotated ? -safeArea.bottom : 0)
+            Rectangle().fill(.black)
         }
         .gesture(DragGesture().onEnded({ value in
             if -value.translation.height > 100 {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isRotated = true
-            }
+                }
                 guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-                    windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+                windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
             } else {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     isRotated = false
@@ -98,8 +103,7 @@ struct VideoPlayerWrapperView: View {
         }))
         .frame(width: videoPlayerSize.width, height: videoPlayerSize.height)
         .frame(width: size.width, height: size.height/3.5)
-        .offset(y: isRotated ? (size.width/3.5-(safeArea.bottom/2)) : 0)
-//        .rotationEffect(.init(degrees: isRotated ? 90 : 0), anchor: .topLeading)
+        //        .rotationEffect(.init(degrees: isRotated ? 90 : 0), anchor: .topLeading)
         .zIndex(10000)
         .onAppear {
             AppDelegate.orientationLock = .allButUpsideDown
@@ -118,6 +122,8 @@ struct VideoPlayerWrapperView: View {
                     if calculatedProgress == 1 {
                         isFinishedPlaying = true
                     }
+                    currentTime = currentDuration
+                    duration = totalDuration.isNaN ? 0 : totalDuration
                 }
             }
             isObserverAdded = true
@@ -131,25 +137,10 @@ struct VideoPlayerWrapperView: View {
     func PlayerControls() -> some View {
         HStack (spacing: 25.0) {
             Button {
-                if let currentPlayerItem = player.currentItem {
-                    let totalDuration = currentPlayerItem.duration.seconds
-                    let currentDuration = player.currentTime().seconds
-                    var newTime = currentDuration - 10
-                    if newTime < 0 {
-                        newTime = 0
-                    }
-                    let newProgress = newTime / totalDuration
-                    progress = newProgress
-                    lastDraggedValue = newProgress
-                    player.seek(to: .init(seconds: newTime, preferredTimescale: 1))
-                    if isPlaying {
-                        timeoutControls()
-                    }
-             }
+                seek(by: -10)
             } label: {
                 Image(systemName: "gobackward.10")
                     .font(.title)
-//                    .fontWeight(.ultraLight)
                     .foregroundColor(.white)
                     .padding(15).background {
                         Circle()
@@ -157,23 +148,23 @@ struct VideoPlayerWrapperView: View {
                         
                     }
             }
- Button {
-     withAnimation(.easeOut(duration: 0.2)) {
-         if isFinishedPlaying {
-             isFinishedPlaying = false
-             player.seek(to: CMTime.zero)
-             progress = .zero
-             lastDraggedValue = .zero
-         }
-         if isPlaying {
-             if let timeoutTask {
-                 timeoutTask.cancel()
-             }
-         } else {
-             timeoutControls()
-         }
-         isPlaying.toggle()
-     }
+            Button {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    if isFinishedPlaying {
+                        isFinishedPlaying = false
+                        player.seek(to: CMTime.zero)
+                        progress = .zero
+                        lastDraggedValue = .zero
+                    }
+                    if isPlaying {
+                        if let timeoutTask {
+                            timeoutTask.cancel()
+                        }
+                    } else {
+                        timeoutControls()
+                    }
+                    isPlaying.toggle()
+                }
             } label: {
                 Image(systemName: isFinishedPlaying ? "arrow.clockwise" : (isPlaying ? "pause.fill" : "play.fill"))
                     .font(.title)
@@ -184,28 +175,11 @@ struct VideoPlayerWrapperView: View {
                         
                     }.scaleEffect(1.1)
             }
- Button {
-        if let currentPlayerItem = player.currentItem {
-            let totalDuration = currentPlayerItem.duration.seconds
-            let currentDuration = player.currentTime().seconds
-            var newTime = currentDuration + 10
-            if newTime > totalDuration {
-                newTime = totalDuration
-                isFinishedPlaying = true
-                isPlaying = false
-            }
-            let newProgress = newTime / totalDuration
-            progress = newProgress
-            lastDraggedValue = newProgress
-            player.seek(to: .init(seconds: newTime, preferredTimescale: 1))
-            if isPlaying {
-                timeoutControls()
-            }
-     }
+            Button {
+                seek(by: 10)
             } label: {
                 Image(systemName: "goforward.10")
                     .font(.title)
-//                    .fontWeight(.ultraLight)
                     .foregroundColor(.white)
                     .padding(15).background {
                         Circle()
@@ -219,6 +193,38 @@ struct VideoPlayerWrapperView: View {
     }
     
     @ViewBuilder
+    func BottomControls() -> some View {
+        HStack {
+            Text("\(currentTime.asString(style: .positional))/\(duration.asString(style: .positional))")
+                    .foregroundColor(.white)
+                    .font(.system(size: 12)).fontWeight(.semibold)
+                    .padding(.horizontal, 10)
+            
+            Spacer()
+            Button {
+                if isRotated {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isRotated = false
+                    }
+                    guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                    windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
+                } else {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isRotated = true
+                    }
+                    guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+                    windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscape))
+                }
+            } label: {
+                Image(systemName: isRotated ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right").resizable().frame(width: 15, height: 15).foregroundColor(.white)
+            }.padding(.trailing, 8)
+                .frame(width: 50, height: 50)
+                .contentShape(Rectangle())
+        }.opacity(showPlayerControls && !isDragging ? 1 : 0).animation(.easeInOut(duration: 0.2), value: showPlayerControls && !isDragging)
+            .padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: 0, trailing: isRotated ? 40 : 0))
+    }
+    
+    @ViewBuilder
     func VideoSeekerView( ) -> some View {
         ZStack (alignment: .leading) {
             Rectangle()
@@ -226,46 +232,68 @@ struct VideoPlayerWrapperView: View {
             
             Rectangle()
                 .fill(Color.cyan).frame(width: max((progress.isNaN ? 0 : progress)*size.width, 0))
-                
+            
         }.frame(height: 3)
             .overlay (alignment: .leading) {
-            Circle().fill(.cyan)
-                .frame(width: 15, height: 15)
-                .scaleEffect(showPlayerControls || isDragging ? 1 : 0.001, anchor: progress*size.width > 15 ? .trailing : .leading)
-                .frame(width: 50, height: 50)
-                .contentShape(Rectangle())
-                .offset(x: progress*size.width)
-                .gesture(
-                    DragGesture().updating($isDragging, body: { _, out, _ in
-                        out = true
-                    }).onChanged({ value in
-                        if let timeoutTask {
-                            timeoutTask.cancel()
-                        }
-                        
-                        let transitionX = value.translation.width
-                        let newProgress = (transitionX / size.width) + lastDraggedValue
-                        
-                        progress = max(min(newProgress, 1),0)
-                        isSeeking = true
-                        
-                    }).onEnded({ value in
-                        lastDraggedValue = progress
-                        if let currentPlayerItem = player.currentItem {
-                            let totalDuration = currentPlayerItem.duration.seconds
-                            player.seek(to: .init(seconds: totalDuration*progress, preferredTimescale: 1))
-                            if isPlaying {
-                                timeoutControls()
+                Circle().fill(.cyan)
+                    .frame(width: 15, height: 15)
+                    .scaleEffect(showPlayerControls || isDragging ? 1 : 0.001, anchor: progress*size.width > 15 ? .trailing : .leading)
+                    .frame(width: 50, height: 50)
+                    .contentShape(Rectangle())
+                    .offset(x: progress*size.width)
+                    .gesture(
+                        DragGesture().updating($isDragging, body: { _, out, _ in
+                            out = true
+                        }).onChanged({ value in
+                            if let timeoutTask {
+                                timeoutTask.cancel()
                             }
                             
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: {
-                                isSeeking = false
-                            })
-                        }
-                    })
-                )
-                .offset(x: progress*size.width > 15 ? -15 : 0)
-                .frame(width: 15, height: 15)
+                            let transitionX = value.translation.width
+                            let newProgress = (transitionX / size.width) + lastDraggedValue
+                            
+                            progress = max(min(newProgress, 1),0)
+                            isSeeking = true
+                            
+                        }).onEnded({ value in
+                            lastDraggedValue = progress
+                            if let currentPlayerItem = player.currentItem {
+                                let totalDuration = currentPlayerItem.duration.seconds
+                                player.seek(to: .init(seconds: totalDuration*progress, preferredTimescale: 1))
+                                if isPlaying {
+                                    timeoutControls()
+                                }
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25, execute: {
+                                    isSeeking = false
+                                })
+                            }
+                        })
+                    )
+                    .offset(x: progress*size.width > 15 ? -15 : 0)
+                    .frame(width: 15, height: 15)
+            }.padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: 0, trailing: isRotated ? 40 : 0))
+    }
+    
+    func seek(by seconds: Double) {
+        if let currentPlayerItem = player.currentItem {
+            let totalDuration = currentPlayerItem.duration.seconds
+            let currentDuration = player.currentTime().seconds
+            var newTime = currentDuration + seconds
+            if newTime < 0 {
+                newTime = 0
+            } else if newTime > totalDuration {
+                newTime = totalDuration
+                isFinishedPlaying = true
+                isPlaying = false
+            }
+            let newProgress = newTime / totalDuration
+            progress = newProgress
+            lastDraggedValue = newProgress
+            player.seek(to: .init(seconds: newTime, preferredTimescale: 1))
+            if isPlaying {
+                timeoutControls()
+            }
         }
     }
     

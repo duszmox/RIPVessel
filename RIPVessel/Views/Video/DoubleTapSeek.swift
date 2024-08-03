@@ -25,11 +25,11 @@ struct DoubleTapSeek: View {
                 VStack(spacing: 10) {
                     HStack (spacing: 0) {
                         ForEach((0..<2).reversed(), id: \.self) { i in
-                            Image(systemName:"arrowtriangle.backward.fill").opacity(showArrows[i] ? 1 : 0.2)
+                            Image(systemName:"arrowtriangle.backward.fill").foregroundColor(.white).opacity(showArrows[i] ? 1 : 0.2)
                         }
                     }.font(.title)
                         .rotationEffect(.degrees(isForward ? 180 : 0))
-                    Text("15 Seconds").font(.caption).fontWeight(.semibold)
+                    Text("10 Seconds").font(.caption).fontWeight(.semibold).foregroundColor(.white)
                 }.opacity(isTapped ? 1 : 0)
             }
             .contentShape(Rectangle())

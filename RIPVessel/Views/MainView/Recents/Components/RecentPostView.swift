@@ -16,41 +16,74 @@ struct RecentPostView: View {
     }
     
     var body: some View {
-            VStack {
-                if vm.post.thumbnail != nil {
-                    ZStack(alignment: .bottomTrailing) {
-                        IconView(url: vm.post.thumbnail!.value1.path)
-                            .aspectRatio(16/9, contentMode: .fit)
-                        
-                        HStack {
-                            if !(vm.post.galleryAttachments?.isEmpty ?? true) {
-                                Image(systemName: "photo.artframe")
-                            }
-                            if !(vm.post.videoAttachments?.isEmpty ?? true) {
-                                Image(systemName: "video")
-                            }
-                            if !(vm.post.audioAttachments?.isEmpty ?? true) {
-                                Image(systemName: "waveform")
-                            }
-                            if !(vm.post.pictureAttachments?.isEmpty ?? true) {
-                                Image(systemName: "photo.fill")
-                            }
+        VStack(alignment: .leading) {
+            if let thumbnail = vm.post.thumbnail?.value1.path {
+                ZStack(alignment: .bottomTrailing) {
+                    IconView(url: thumbnail)
+                        .aspectRatio(16/9, contentMode: .fit)
+                        .cornerRadius(8).padding([.leading, .trailing], 4)
+                    HStack {
+//                        HStack {
+//                            if !(vm.post.galleryAttachments?.isEmpty ?? true) {
+//                                Image(systemName: "photo.artframe")
+//                            }
+//                            if !(vm.post.videoAttachments?.isEmpty ?? true) {
+//                                Image(systemName: "video")
+//                            }
+//                            if !(vm.post.audioAttachments?.isEmpty ?? true) {
+//                                Image(systemName: "waveform")
+//                            }
+//                            if !(vm.post.pictureAttachments?.isEmpty ?? true) {
+//                                Image(systemName: "photo.fill")
+//                            }
+//                        }
+//                        .padding(10)
+//                        .background(Color.gray.opacity(0.65))
+//                        .cornerRadius(20)
+//                        
+                        if vm.post.metadata.hasVideo {
+                            let text = vm.post.metadata.videoDuration.asString(style: .positional)
+                            Text(text)
+                                .foregroundColor(.white).fontWeight(.semibold)
+                                .font(.system(size: 13))
+                                .padding(4)
+                                .background(Color.black.opacity(0.65))
+                                .cornerRadius(5)
                         }
-                        .padding(10)
-                        .background(Color(.gray).opacity(0.65))
-                        .cornerRadius(20)
                     }
-                    .aspectRatio(16/9, contentMode: .fit)
+
+                    .padding(8)
                 }
-                Text(vm.post.title)
-            }.onTapGesture {
-                if !(vm.post.videoAttachments?.isEmpty ?? true) {
-                    router.navigate(to: .video(post: vm.post))
+                .onTapGesture {
+                    if !(vm.post.videoAttachments?.isEmpty ?? true) {
+                        router.navigate(to: .video(post: vm.post))
+                    }
                 }
             }
+            
+            HStack(alignment: .top, spacing: 10) {
+                if let channel = vm.getChannelModel(from: vm.post.channel) {
+                    IconView(url: channel.icon.path )
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                } else {
+                    IconView(url: vm.post.creator.icon.path )
+                        .frame(width: 40, height: 40)
+                        .clipShape(Circle())
+                }
+               
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vm.post.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .padding(.top, 2)
+                    
+                    Text("\(vm.getChannelModel(from: vm.post.channel)?.title ?? "") • \(vm.post.releaseDate.timeAgoString())")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding([.horizontal, .bottom], 8)
+        }
     }
 }
-
-//#Preview {
-//    RecentPostView()
-//}
