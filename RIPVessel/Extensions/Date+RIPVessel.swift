@@ -12,13 +12,15 @@ extension Date {
         let now = Date()
         let calendar = Calendar.current
         
-        // Calculate the difference between now and the date
-        let components = calendar.dateComponents([.hour], from: self, to: now)
+        let components = calendar.dateComponents([.hour, .minute], from: self, to: now)
         
         if let hours = components.hour, hours < 24 {
-            return "\(hours) hours ago"
+            if hours == 0, let minutes = components.minute, minutes > 0 {
+                return "\(minutes) minutes ago"
+            } else {
+                return "\(hours) hours ago"
+            }
         } else {
-            // Create a date formatter for the standard date string
             let dateFormatter = DateFormatter()
             dateFormatter.dateStyle = .medium
             dateFormatter.timeStyle = .short
