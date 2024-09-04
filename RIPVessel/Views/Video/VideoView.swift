@@ -12,6 +12,7 @@ import AVKit
 struct VideoView: View {
     @StateObject private var vm: ViewModel
     @State private var isRotated = false
+    @State private var webViewHeight: CGFloat = .zero
     init(post: Components.Schemas.BlogPostModelV3) {
         _vm = StateObject(wrappedValue: ViewModel(post: post))
     }
@@ -23,31 +24,34 @@ struct VideoView: View {
                     VideoPlayerWrapperView(videoURL: (stream.groups.first?.origins?.first?.url ?? ""), currentQuality: $vm.currentQuality, size: geometry.size, safeArea: geometry.safeAreaInsets, isRotated: $isRotated)
                         .aspectRatio(16/9, contentMode: .fit).zIndex(10000)
                 }
-                VStack {
-                    Rectangle().aspectRatio(16/9, contentMode: .fit).frame(width: geometry.size.width, height: geometry.size.height/3.5).opacity(0)
-                    Text(vm.post.title)
-                        .font(.title)
-                        .bold()
-                        .padding()
+                ScrollView {
+                    LazyVStack {
+                        Rectangle().aspectRatio(16/9, contentMode: .fit).frame(width: geometry.size.width, height: geometry.size.height/3.5).opacity(0)
+                        Text(vm.post.title)
+                            .font(.title)
+                            .bold()
+                            .padding()
 
-                    WebView(text: $vm.post.text).opacity(isRotated ? 0 : 1)
-                    Picker("Select Quality", selection: $vm.currentQuality) {
-                        ForEach(vm.qualities, id: \.self) { quality in
-                            Text(quality.label).tag(quality as Components.Schemas.CdnDeliveryV3Variant)
+                        WebView(text: $vm.post.text, contentHeight: $webViewHeight).frame(height: webViewHeight).opacity(isRotated ? 0 : 1)
+                        Picker("Select Quality", selection: $vm.currentQuality) {
+                            ForEach(vm.qualities, id: \.self) { quality in
+                                Text(quality.label).tag(quality as Components.Schemas.CdnDeliveryV3Variant)
+                            }
                         }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .padding()
+                        Spacer()
                     }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .padding()
-                    Spacer()
+                    .onRotate(perform: { orientation in
+                      if orientation == .landscapeLeft || orientation == .landscapeRight {
+                          isRotated = true
+                          
+                      } else if orientation == .portrait {
+                          isRotated = false
+                      }
+                    })
+
                 }
-                .onRotate(perform: { orientation in
-                  if orientation == .landscapeLeft || orientation == .landscapeRight {
-                      isRotated = true
-                      
-                  } else if orientation == .portrait {
-                      isRotated = false
-                  }
-                })
                 .onAppear {
                     print("VideoView")
                 }

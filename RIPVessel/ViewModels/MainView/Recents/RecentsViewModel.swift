@@ -10,13 +10,24 @@ import Foundation
 extension RecentsView {
     class ViewModel: ObservableObject {
         @Published var recents: [Components.Schemas.BlogPostModelV3] = []
+        @Published var channelId: String?
+        @Published var creatorId: String?
         private var offset = 0
+        
+        init(creatorId: String?, channelId: String?) {
+            if let channelId {
+                self.channelId = channelId
+            }
+            if let creatorId {
+                self.creatorId = creatorId
+            }
+        }
         
         func fetchRecents(refresh: Bool = false) async {
             do {
                 let recentsPerCreatorStorage = ItemStorage<[Components.Schemas.BlogPostModelV3]>()
                 let recentsStorageFlat = ItemStorage<Components.Schemas.BlogPostModelV3>()
-                let creators = try await CreatorClient.shared.getSubscribedCreators()
+                let creators = creatorId != nil ? [try await CreatorClient.shared.getCreator(id: creatorId!)] : try await CreatorClient.shared.getSubscribedCreators()
                 var tasks = [Task<Void, Never>]()
 
                 if refresh {
@@ -29,7 +40,7 @@ extension RecentsView {
                     let task = Task {
                         do {
                             let recentResult = try await ApiService.shared.client.getCreatorBlogPosts(
-                                Operations.getCreatorBlogPosts.Input(query: Operations.getCreatorBlogPosts.Input.Query(id: creator.id, limit: 10, fetchAfter: offset))
+                                Operations.getCreatorBlogPosts.Input(query: Operations.getCreatorBlogPosts.Input.Query(id: creator.id, channel: channelId, limit: 10, fetchAfter: offset))
                             )
                             print("Recent: \(recentResult)")
                             let recent = try recentResult.ok.body.json

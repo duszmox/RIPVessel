@@ -43,11 +43,15 @@ struct CreatorsView: View {
                         }
                         ForEach(creator.channels, id: \.id) { channel in
                             HStack {
-                                IconView(url: channel.icon.path, size: CGSize(width: 33, height: 33)).clipShape(Circle())
-                                Text(channel.title)
+                                NavigationLink {
+                                    ChannelView(id: channel.id, creator: creator)
+                                } label: {
+                                    IconView(url: channel.icon.path, size: CGSize(width: 33, height: 33)).clipShape(Circle())
+                                    Text(channel.title)
+                                }
+                               
                             }.padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
                         }
-
                     }
                 }
             }.frame(alignment: .leading)

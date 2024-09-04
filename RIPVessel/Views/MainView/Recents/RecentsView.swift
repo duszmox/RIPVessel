@@ -8,22 +8,15 @@
 import SwiftUI
 
 struct RecentsView: View {
-    @StateObject private var vm = ViewModel()
+    @StateObject private var vm: ViewModel
+    @Binding var scrollEnabled: Bool
+    
+    init(creatorId: String? = nil, channelId: String? = nil, scrollEnabled: Binding<Bool> = .constant(true)) {
+        _vm = .init(wrappedValue: .init(creatorId: creatorId, channelId: channelId))
+        _scrollEnabled = scrollEnabled
+    }
     
     var body: some View {
-        VStack {
-            Button {
-            Task {
-                do {
-                   try await AuthService.shared.logout()
-                }
-                catch {
-                    print("Error: \(error)")
-                }
-            }
-        } label: {
-            Text(UserDefaultsService.shared.user!.id)
-        }
             ScrollView {
                 LazyVStack {
                     if vm.recents.isEmpty {
@@ -50,8 +43,7 @@ struct RecentsView: View {
                 Task {
                     await vm.fetchRecents(refresh: true)
                 }
-            }
-        }
+            }.scrollDisabled(vm.recents.isEmpty && !scrollEnabled)
         .onAppear {
             UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation") // Forcing the rotation to portrait
             AppDelegate.orientationLock = .portrait // And making sure it stays that way

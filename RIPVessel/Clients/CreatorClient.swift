@@ -45,5 +45,9 @@ class CreatorClient {
         
     }
     
-   
+    func getCreator(id: String) async throws -> Components.Schemas.CreatorModelV3 {
+        let result = try await ApiService.shared.client.getCreator(Operations.getCreator.Input(query: Operations.getCreator.Input.Query(id: id)))
+        let creator = try result.ok.body.json
+        return creator
+    }
 }

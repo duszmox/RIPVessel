@@ -18,45 +18,27 @@ struct RecentPostView: View {
     var body: some View {
         VStack(alignment: .leading) {
             if let thumbnail = vm.post.thumbnail?.value1.path {
-                ZStack(alignment: .bottomTrailing) {
-                    IconView(url: thumbnail)
-                        .aspectRatio(16/9, contentMode: .fit)
-                        .cornerRadius(8).padding([.leading, .trailing], 4)
-                    HStack {
-//                        HStack {
-//                            if !(vm.post.galleryAttachments?.isEmpty ?? true) {
-//                                Image(systemName: "photo.artframe")
-//                            }
-//                            if !(vm.post.videoAttachments?.isEmpty ?? true) {
-//                                Image(systemName: "video")
-//                            }
-//                            if !(vm.post.audioAttachments?.isEmpty ?? true) {
-//                                Image(systemName: "waveform")
-//                            }
-//                            if !(vm.post.pictureAttachments?.isEmpty ?? true) {
-//                                Image(systemName: "photo.fill")
-//                            }
-//                        }
-//                        .padding(10)
-//                        .background(Color.gray.opacity(0.65))
-//                        .cornerRadius(20)
-//                        
-                        if vm.post.metadata.hasVideo {
-                            let text = vm.post.metadata.videoDuration.asString(style: .positional)
-                            Text(text)
-                                .foregroundColor(.white).fontWeight(.semibold)
-                                .font(.system(size: 13))
-                                .padding(4)
-                                .background(Color.black.opacity(0.65))
-                                .cornerRadius(5)
+                NavigationLink {
+                    VideoView(post: vm.post)
+                } label: {
+                    ZStack(alignment: .bottomTrailing) {
+                        IconView(url: thumbnail)
+                            .aspectRatio(16/9, contentMode: .fit)
+                            .cornerRadius(8).padding([.leading, .trailing], 4)
+                        HStack {
+                            
+                            if vm.post.metadata.hasVideo {
+                                let text = vm.post.metadata.videoDuration.asString(style: .positional)
+                                Text(text)
+                                    .foregroundColor(.white).fontWeight(.semibold)
+                                    .font(.system(size: 13))
+                                    .padding(4)
+                                    .background(Color.black.opacity(0.65))
+                                    .cornerRadius(5)
+                            }
                         }
-                    }
 
-                    .padding(8)
-                }
-                .onTapGesture {
-                    if !(vm.post.videoAttachments?.isEmpty ?? true) {
-                        router.navigate(to: .video(post: vm.post))
+                        .padding(8)
                     }
                 }
             }

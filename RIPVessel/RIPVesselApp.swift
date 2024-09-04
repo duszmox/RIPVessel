@@ -45,13 +45,17 @@ struct MainView: View {
 
     var body: some View {
            if auth.loggedIn {
-               NavigationStack(path: $router.navPath) {
-               RecentsView().navigationDestination(for: Router.Destination.self) { destination in
-                   switch destination {
-                   case .video(let post):
-                       VideoView(post: post)
+               TabView {
+                   NavigationStack {
+                       RecentsView()
+                   }.tabItem {
+                           Label("Recents", systemImage: "play.house.fill")
+                       }
+                   NavigationStack {
+                       CreatorsView()
+                   }.tabItem {
+                           Label("Creators", systemImage: "books.vertical.fill")
                    }
-               }
                }
            } else {
                LoginView()
