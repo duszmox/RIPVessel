@@ -5,7 +5,7 @@
 //  Created by Gyula Kiri on 2024. 07. 31..
 //
 import SwiftUI
-import WebKit
+@preconcurrency import WebKit
 
 struct WebView: UIViewRepresentable {
     @Binding var text: String
@@ -27,9 +27,7 @@ struct WebView: UIViewRepresentable {
             }
         }
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-//            webView.evaluateJavaScript("document.documentElement.scrollHeight", completionHandler: { (height, error) in
-//                self.parent.contentHeight = CGFloat(height as! Double)
-//            })
+            self.parent.contentHeight = 40
         }
     }
 

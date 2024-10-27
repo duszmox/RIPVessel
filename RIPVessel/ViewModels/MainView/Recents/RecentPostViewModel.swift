@@ -10,9 +10,11 @@ import Foundation
 extension RecentPostView {
     class ViewModel: ObservableObject {
         @Published var post: Components.Schemas.BlogPostModelV3
+        @Published var isSpecificChannel: Bool
         
-        init(post: Components.Schemas.BlogPostModelV3) {
+        init(post: Components.Schemas.BlogPostModelV3, isSpecificChannel: Bool) {
             self.post = post
+            self.isSpecificChannel = isSpecificChannel
         }
         
         func getChannelModel(from payload: Components.Schemas.BlogPostModelV3.channelPayload) -> Components.Schemas.ChannelModel? {

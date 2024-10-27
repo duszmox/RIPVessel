@@ -30,7 +30,9 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct RIPVesselApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-
+    init() {
+        loadRocketSimConnect()
+    }
     var body: some Scene {
         WindowGroup {
             MainView().environmentObject(AuthService.shared)
@@ -68,4 +70,14 @@ struct LoadingView: View {
         Text("Loading...")
             .padding()
     }
+}
+
+private func loadRocketSimConnect() {
+    #if DEBUG
+    guard (Bundle(path: "/Applications/RocketSim.app/Contents/Frameworks/RocketSimConnectLinker.nocache.framework")?.load() == true) else {
+        print("Failed to load linker framework")
+        return
+    }
+    print("RocketSim Connect successfully linked")
+    #endif
 }

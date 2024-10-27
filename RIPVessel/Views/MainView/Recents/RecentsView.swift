@@ -11,21 +11,24 @@ struct RecentsView: View {
     @StateObject private var vm: ViewModel
     @Binding var scrollEnabled: Bool
     
+    @State var isSpecificChannel: Bool
+    
     init(creatorId: String? = nil, channelId: String? = nil, scrollEnabled: Binding<Bool> = .constant(true)) {
         _vm = .init(wrappedValue: .init(creatorId: creatorId, channelId: channelId))
         _scrollEnabled = scrollEnabled
+        _isSpecificChannel = .init(initialValue: creatorId != nil || channelId != nil)
     }
     
     var body: some View {
             ScrollView {
-                LazyVStack {
+                LazyVGrid(columns: [.init()]) {
                     if vm.recents.isEmpty {
                         LoadingRecentPostView()
                         LoadingRecentPostView()
                         LoadingRecentPostView()
                     }
                     ForEach(vm.recents, id: \.id) { recent in
-                        RecentPostView(post: recent)
+                        RecentPostView(post: recent, isSpecificChannel: isSpecificChannel)
                             .onAppear {
                             Task {
                                 if recent.id == vm.recents.last?.id {

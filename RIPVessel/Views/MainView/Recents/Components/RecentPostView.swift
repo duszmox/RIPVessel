@@ -11,8 +11,8 @@ struct RecentPostView: View {
     @StateObject private var vm: ViewModel
     @StateObject private var router = Router.shared
 
-    init(post: Components.Schemas.BlogPostModelV3) {
-        _vm = StateObject(wrappedValue: ViewModel(post: post))
+    init(post: Components.Schemas.BlogPostModelV3, isSpecificChannel: Bool = false) {
+        _vm = StateObject(wrappedValue: ViewModel(post: post, isSpecificChannel: isSpecificChannel))
     }
     
     var body: some View {
@@ -45,9 +45,13 @@ struct RecentPostView: View {
             
             HStack(alignment: .top, spacing: 10) {
                 if let channel = vm.getChannelModel(from: vm.post.channel) {
-                    IconView(url: channel.icon.path )
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
+                    NavigationLink {
+                        ChannelView(id: channel.id, creatorId: vm.post.creator.id )
+                    } label: {
+                        IconView(url: channel.icon.path )
+                            .frame(width: 40, height: 40)
+                            .clipShape(Circle())
+                    }.disabled(self.vm.isSpecificChannel)
                 } else {
                     IconView(url: vm.post.creator.icon.path )
                         .frame(width: 40, height: 40)

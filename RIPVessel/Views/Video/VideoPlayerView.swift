@@ -1,10 +1,3 @@
-//
-//  VideoPlayerView.swift
-//  RIPVessel
-//
-//  Created by Gyula Kiri on 2024. 07. 30..
-//
-
 import SwiftUI
 import AVKit
 
@@ -17,19 +10,26 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     
     @State var player: AVPlayer?
     @Binding var progress: CGFloat
-    
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         if let player {
             controller.player = player
             controller.allowsPictureInPicturePlayback = true
+            controller.canStartPictureInPictureAutomaticallyFromInline = true
             controller.updatesNowPlayingInfoCenter = true
             controller.showsPlaybackControls = false
 
             addObservers(to: controller.player!.currentItem!, context: context)
         }
-        try! AVAudioSession.sharedInstance().setCategory(.playback)
+        
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Failed to set audio session category: \(error)")
+        }
+
         return controller
     }
 
