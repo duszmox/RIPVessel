@@ -13,6 +13,8 @@ struct VideoView: View {
     @StateObject private var vm: ViewModel
     @State private var isRotated = false
     @State private var webViewHeight: CGFloat = .zero
+    @Environment(\.scenePhase) var scenePhase
+
     
     init(post: Components.Schemas.BlogPostModelV3) {
         _vm = StateObject(wrappedValue: ViewModel(post: post))
@@ -26,7 +28,7 @@ struct VideoView: View {
                                            currentQuality: $vm.currentQuality,
                                            size: geometry.size,
                                            safeArea: geometry.safeAreaInsets,
-                                           isRotated: $isRotated)
+                                           isRotated: $isRotated, title: vm.post.title)
                         .aspectRatio(16/9, contentMode: .fit)
                         .zIndex(10000)
                 }
@@ -57,15 +59,17 @@ struct VideoView: View {
                         isRotated = orientation == .landscapeLeft || orientation == .landscapeRight
                     }
                 }
-                .onAppear {
-                    print("VideoView")
-                }
                 .toolbar(.hidden, for: .tabBar)
             }
         }
         .onAppear {
-            AppDelegate.orientationLock = .all
+            AppDelegate.orientationLock = .allButUpsideDown
         }
+        .onChange(of: scenePhase, perform: { newPhase in
+            if newPhase == .active {
+                isRotated = !UIDevice.current.orientation.isPortrait
+            }
+        })
         .persistentSystemOverlays(.hidden)
     }
 }

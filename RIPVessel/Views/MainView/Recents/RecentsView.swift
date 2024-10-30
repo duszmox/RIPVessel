@@ -49,9 +49,9 @@ struct RecentsView: View {
             }.scrollDisabled(vm.recents.isEmpty && !scrollEnabled)
         .onAppear {
             UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation") // Forcing the rotation to portrait
-            AppDelegate.orientationLock = .portrait // And making sure it stays that way
+            AppDelegate.orientationLock = .portrait 
         }.onDisappear {
-            AppDelegate.orientationLock = .all // Unlocking the rotation when leaving the view
+            AppDelegate.orientationLock = .allButUpsideDown
         }
     }
 }

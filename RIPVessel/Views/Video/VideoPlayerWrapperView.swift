@@ -31,9 +31,10 @@ struct VideoPlayerWrapperView: View {
     @State var safeArea: EdgeInsets
     
     @State private var isObserverAdded: Bool = false
+    @State private var title: String
     
     @Binding private var isRotated: Bool
-    init(videoURL: String, currentQuality: Binding<Components.Schemas.CdnDeliveryV3Variant?>, size: CGSize = .zero, safeArea: EdgeInsets = .init(), isRotated: Binding<Bool>) {
+    init(videoURL: String, currentQuality: Binding<Components.Schemas.CdnDeliveryV3Variant?>, size: CGSize = .zero, safeArea: EdgeInsets = .init(), isRotated: Binding<Bool>, title: String) {
         
         self.videoURL = videoURL
         _currentQuality = currentQuality
@@ -46,10 +47,11 @@ struct VideoPlayerWrapperView: View {
         player.usesExternalPlaybackWhileExternalScreenIsActive = true
         self.player = player
         _isRotated = isRotated
+        self.title = title
     }
     
     var body: some View {
-        let videoPlayerSize: CGSize = .init(width: isRotated ? size.height+safeArea.bottom+safeArea.top : size.width, height: isRotated ? size.width+safeArea.leading+safeArea.trailing : (size.height/3.5))
+        let videoPlayerSize: CGSize = .init(width: isRotated ? size.height+safeArea.bottom+safeArea.top : size.width, height: isRotated ? size.width+safeArea.leading+safeArea.trailing : .zero)
         ZStack(alignment: .center) {
             VideoPlayerView(url: URL(string: videoURL)!, play: $isPlaying, currentQuality: $currentQuality, isBuffering: $isBuffering, player: player, progress: $progress).overlay {
                 Rectangle()
@@ -82,6 +84,8 @@ struct VideoPlayerWrapperView: View {
                 VideoSeekerView().offset(y: isRotated ? -15 : 0)
             }.overlay(alignment: .bottom) {
                 BottomControls().offset(y: isRotated ? -15 : -0)
+            }.overlay(alignment: .top) {
+                topControls()
             }
         }.background {
             Rectangle().fill(.black)
@@ -101,7 +105,7 @@ struct VideoPlayerWrapperView: View {
                 windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: .portrait))
             }
         }))
-        .frame(width: videoPlayerSize.width)
+        .frame(width: videoPlayerSize.width, height: isRotated ? videoPlayerSize.height : nil)
         .frame(width: size.width)
         .offset(y: isRotated ? 10 : 0)
         .zIndex(10000)
@@ -166,14 +170,20 @@ struct VideoPlayerWrapperView: View {
                     isPlaying.toggle()
                 }
             } label: {
-                Image(systemName: isFinishedPlaying ? "arrow.clockwise" : (isPlaying ? "pause.fill" : "play.fill"))
-                    .font(.title)
+                VStack {
+                    if isBuffering {
+                        ProgressView()
+                    } else {
+                        Image(systemName: isFinishedPlaying ? "arrow.clockwise" : (isPlaying ? "pause.fill" : "play.fill"))
+                    }
+                }.font(.title)
                     .foregroundColor(.white)
                     .padding(15).background {
                         Circle()
                             .fill(Color.black.opacity(0.35))
                         
                     }.scaleEffect(1.1)
+                
             }
             Button {
                 seek(by: 10)
@@ -221,7 +231,7 @@ struct VideoPlayerWrapperView: View {
                 .frame(width: 50, height: 50)
                 .contentShape(Rectangle())
         }.opacity(showPlayerControls ? 1 : isSeeking ? 1 : 0).animation(.easeInOut(duration: 0.2), value: showPlayerControls)
-            .padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: 0, trailing: isRotated ? 40 : 0))
+            .padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: isRotated ? 10 : 0, trailing: isRotated ? 40 : 0))
     }
     
     @ViewBuilder
@@ -276,7 +286,18 @@ struct VideoPlayerWrapperView: View {
                         })
                     )
                     .frame(width: 15, height: 15)
-            }.padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: 0, trailing: isRotated ? 40 : 0))
+            }.padding(EdgeInsets(top: 0, leading: isRotated ? 40 : 0, bottom: isRotated ? 10 : 0, trailing: isRotated ? 40 : 0))
+            .opacity(showPlayerControls ? 1 : isRotated ? 0: 1)
+    }
+    
+    @ViewBuilder
+    func topControls() -> some View {
+        HStack {
+            Text(title).fontWeight(.bold).lineLimit(1)
+            Spacer()
+        }
+        .padding(.leading, safeArea.bottom).padding(.trailing, safeArea.top)
+        .opacity(showPlayerControls ? isRotated ? 1 : 0 : 0 )
     }
     
     func seek(by seconds: Double) {
