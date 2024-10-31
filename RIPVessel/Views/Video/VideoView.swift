@@ -14,7 +14,7 @@ struct VideoView: View {
     @State private var isRotated = false
     @State private var webViewHeight: CGFloat = .zero
     @Environment(\.scenePhase) var scenePhase
-
+    @State private var isDescriptionExpanded: Bool = false
     
     init(post: Components.Schemas.BlogPostModelV3) {
         _vm = StateObject(wrappedValue: ViewModel(post: post))
@@ -33,7 +33,7 @@ struct VideoView: View {
                         .zIndex(10000)
                 }
                 ScrollView {
-                    LazyVStack {
+                    VStack {
                         Rectangle().aspectRatio(16/9, contentMode: .fit)
                             .frame(width: geometry.size.width, height: geometry.size.height/3.5)
                             .opacity(0)
@@ -42,8 +42,26 @@ struct VideoView: View {
                             .font(.title)
                             .bold()
                             .padding()
-                        
-                        AsyncAttributedTextView(htmlString: vm.post.text)
+                            .frame(alignment: .leading)
+                        ZStack {
+                            VStack(alignment: .leading) {
+                                    ScrollView {
+                                        AsyncAttributedTextView(htmlString: vm.post.text)
+                                            .padding()
+                                    }
+                                    .frame(maxHeight: isDescriptionExpanded ? .infinity : 150)
+                                    .scrollDisabled(true)
+                                
+                                Button(action: {
+                                    withAnimation {
+                                        isDescriptionExpanded.toggle()
+                                    }
+                                }) {
+                                    Text(isDescriptionExpanded ? "Collapse" : "Expand")
+                                }
+                                .padding()
+                            }
+                        }
                         
                         Picker("Select Quality", selection: $vm.currentQuality) {
                             ForEach(vm.qualities, id: \.self) { quality in
