@@ -74,6 +74,9 @@ struct VideoView: View {
                         Spacer()
                     }
                     .onRotate { orientation in
+                        if orientation == .portraitUpsideDown || orientation == .faceUp {
+                            return
+                        }
                         isRotated = orientation == .landscapeLeft || orientation == .landscapeRight
                     }
                 }
@@ -81,6 +84,8 @@ struct VideoView: View {
             }
         }
         .onAppear {
+            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+            
             AppDelegate.orientationLock = .allButUpsideDown
         }
         .onChange(of: scenePhase, perform: { newPhase in

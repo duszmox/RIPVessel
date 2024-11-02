@@ -52,6 +52,7 @@ struct RecentsView: View {
             AppDelegate.orientationLock = .portrait 
         }.onDisappear {
             AppDelegate.orientationLock = .allButUpsideDown
+            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         }
     }
 }
