@@ -28,7 +28,7 @@ struct VideoView: View {
                                            currentQuality: $vm.currentQuality,
                                            size: geometry.size,
                                            safeArea: geometry.safeAreaInsets,
-                                           isRotated: $isRotated, title: vm.post.title)
+                                           isRotated: $isRotated, title: vm.video?.title ?? "")
                         .aspectRatio(16/9, contentMode: .fit)
                         .zIndex(10000)
                 }
@@ -38,15 +38,33 @@ struct VideoView: View {
                             .frame(width: geometry.size.width, height: geometry.size.height/3.5)
                             .opacity(0)
                         
-                        Text(vm.post.title)
-                            .font(.title)
-                            .bold()
-                            .padding()
-                            .frame(alignment: .leading)
+                        HStack {
+                            Text(vm.video?.title ?? "")
+                                .font(.title)
+                                .bold()
+                                .padding()
+                                .frame(alignment: .leading)
+                            Spacer()
+                        }
+                        HStack {
+                            Button {
+                                vm.like()
+                            } label: {
+                                Image(systemName: (vm.post?.userInteraction?.contains(.like) ?? false) ? "hand.thumbsup.fill" : "hand.thumbsup")
+                                Text(String(vm.post?.likes ?? 0))
+                            }
+                            Button {
+                                vm.dislike()
+                            } label: {
+                                Image(systemName: (vm.post?.userInteraction?.contains(.dislike) ?? false) ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                Text(String(vm.post?.dislikes ?? 0))
+                            }
+                        }
+                        
                         ZStack {
                             VStack(alignment: .leading) {
                                     ScrollView {
-                                        AsyncAttributedTextView(htmlString: vm.post.text)
+                                        AsyncAttributedTextView(htmlString: vm.description)
                                             .padding()
                                     }
                                     .frame(maxHeight: isDescriptionExpanded ? .infinity : 150)

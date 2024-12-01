@@ -8,20 +8,19 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     @Binding var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
     @Binding var isBuffering: Bool
     
-    @State var player: AVPlayer?
+    var player: AVPlayer // Remove @State
+
     @Binding var progress: CGFloat
 
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
-        if let player {
-            controller.player = player
-            controller.allowsPictureInPicturePlayback = true
-            controller.canStartPictureInPictureAutomaticallyFromInline = true
-            controller.updatesNowPlayingInfoCenter = true
-            controller.showsPlaybackControls = false
+        controller.player = player
+        controller.allowsPictureInPicturePlayback = true
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        controller.updatesNowPlayingInfoCenter = true
+        controller.showsPlaybackControls = false
 
-            addObservers(to: controller.player!.currentItem!, context: context)
-        }
+        addObservers(to: controller.player!.currentItem!, context: context)
         
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback)
@@ -34,27 +33,10 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        let player = uiViewController.player
-        
-        if let currentItem = player?.currentItem,
-           (currentItem.asset as? AVURLAsset)?.url != URL(string: url.absoluteString + (currentQuality?.url ?? "")) {
-            player?.pause()
-            currentItem.removeObserver(context.coordinator, forKeyPath: "status")
-            currentItem.removeObserver(context.coordinator, forKeyPath: "playbackBufferEmpty")
-            currentItem.removeObserver(context.coordinator, forKeyPath: "playbackLikelyToKeepUp")
-            uiViewController.player?.replaceCurrentItem(with: self.createAVItem())
-            addObservers(to: player!.currentItem!, context: context)
-            player?.currentItem?.seek(to: .init(seconds: currentItem.duration.seconds*progress, preferredTimescale: 1), completionHandler: { _ in
-                if play {
-                    player?.play()
-                }
-            })
+        if play {
+            player.play()
         } else {
-            if play {
-                player?.play()
-            } else {
-                player?.pause()
-            }
+            player.pause()
         }
     }
     

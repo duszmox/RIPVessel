@@ -9,7 +9,6 @@ import SwiftUI
 import AVFoundation
 
 struct VideoPlayerWrapperView: View {
-    // State and Binding properties
     @State private var isPlaying = false
     @State private var isBuffering = false
     @State private var showPlayerControls = false
@@ -24,13 +23,15 @@ struct VideoPlayerWrapperView: View {
     @State private var isObserverAdded: Bool = false
 
     // Properties passed in
-    @State var videoURL: String
+    let videoURL: String
     @Binding var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
-    @State var player: AVPlayer
     @State var size: CGSize
     @State var safeArea: EdgeInsets
     @State var title: String
     @Binding var isRotated: Bool
+
+    // Use @StateObject for PlayerViewModel
+    @StateObject private var playerViewModel: PlayerViewModel
 
     init(
         videoURL: String,
@@ -44,19 +45,11 @@ struct VideoPlayerWrapperView: View {
         _currentQuality = currentQuality
         self.size = size
         self.safeArea = safeArea
-        let asset = AVURLAsset(
-            url: URL(string: videoURL + (currentQuality.wrappedValue?.url ?? ""))!,
-            options: [
-                AVURLAssetPreferPreciseDurationAndTimingKey: true,
-                AVURLAssetHTTPCookiesKey: HTTPCookieStorage.shared.cookies as Any
-            ]
-        )
-        let item = AVPlayerItem(asset: asset)
-        let player = AVPlayer(playerItem: item)
-        player.usesExternalPlaybackWhileExternalScreenIsActive = true
-        self.player = player
         _isRotated = isRotated
         self.title = title
+
+        let url = URL(string: videoURL + (currentQuality.wrappedValue?.url ?? ""))!
+        _playerViewModel = StateObject(wrappedValue: PlayerViewModel(url: url))
     }
 
     var body: some View {
@@ -71,7 +64,7 @@ struct VideoPlayerWrapperView: View {
                 play: $isPlaying,
                 currentQuality: $currentQuality,
                 isBuffering: $isBuffering,
-                player: player,
+                player: playerViewModel.player,
                 progress: $progress
             )
             .overlay {
@@ -97,10 +90,10 @@ struct VideoPlayerWrapperView: View {
                     isRotated: isRotated,
                     size: size,
                     seekAction: { newProgress in
-                        if let currentPlayerItem = player.currentItem {
+                        if let currentPlayerItem = playerViewModel.player.currentItem {
                             let totalDuration = currentPlayerItem.duration.seconds
                             currentTime = newProgress * totalDuration
-                            player.seek(to: .init(seconds: totalDuration * newProgress, preferredTimescale: 1))
+                            playerViewModel.player.seek(to: .init(seconds: totalDuration * newProgress, preferredTimescale: 1))
                             if isPlaying {
                                 timeoutControls()
                             }
@@ -155,13 +148,17 @@ struct VideoPlayerWrapperView: View {
         .frame(width: videoPlayerSize.width, height: isRotated ? videoPlayerSize.height : nil)
         .frame(width: size.width)
         .zIndex(10000)
+        .onChange(of: currentQuality) { newQuality in
+            let newURL = URL(string: videoURL + (newQuality?.url ?? ""))!
+            playerViewModel.updatePlayerItem(url: newURL)
+        }
         .onAppear {
             AppDelegate.orientationLock = .allButUpsideDown
             setupPlayerObserver()
             isPlaying.toggle()
         }
         .onDisappear {
-            player.pause()
+            playerViewModel.player.pause()
         }
         .navigationBarBackButtonHidden(isRotated)
     }
@@ -192,7 +189,7 @@ struct VideoPlayerWrapperView: View {
                 isDragging: isDragging,
                 seekBackward: { seek(by: -10) },
                 seekForward: { seek(by: 10) },
-                playPauseAction: playPauseAction
+                playPauseAction: playPauseAction // Added back
             )
         }
     }
@@ -201,19 +198,19 @@ struct VideoPlayerWrapperView: View {
 
     func setupPlayerObserver() {
         guard !isObserverAdded else { return }
-        player.addPeriodicTimeObserver(
+        playerViewModel.player.addPeriodicTimeObserver(
             forInterval: .init(seconds: 1, preferredTimescale: 1),
             queue: .main
         ) { time in
-            if let currentPlayerItem = player.currentItem {
+            if let currentPlayerItem = playerViewModel.player.currentItem {
                 let totalDuration = currentPlayerItem.duration.seconds
-                let currentDuration = player.currentTime().seconds
+                let currentDuration = playerViewModel.player.currentTime().seconds
                 let calculatedProgress = currentDuration / totalDuration
                 if !isSeeking {
                     progress = calculatedProgress
                     lastDraggedValue = calculatedProgress
                 }
-                if calculatedProgress == 1 {
+                if calculatedProgress >= 1.0 {
                     isFinishedPlaying = true
                 }
                 currentTime = currentDuration
@@ -224,9 +221,9 @@ struct VideoPlayerWrapperView: View {
     }
 
     func seek(by seconds: Double) {
-        if let currentPlayerItem = player.currentItem {
+        if let currentPlayerItem = playerViewModel.player.currentItem {
             let totalDuration = currentPlayerItem.duration.seconds
-            let currentDuration = player.currentTime().seconds
+            let currentDuration = playerViewModel.player.currentTime().seconds
             var newTime = currentDuration + seconds
             if newTime < 0 {
                 newTime = 0
@@ -238,7 +235,7 @@ struct VideoPlayerWrapperView: View {
             let newProgress = newTime / totalDuration
             progress = newProgress
             lastDraggedValue = newProgress
-            player.seek(to: .init(seconds: newTime, preferredTimescale: 1))
+            playerViewModel.player.seek(to: .init(seconds: newTime, preferredTimescale: 1))
             if isPlaying {
                 timeoutControls()
             }
@@ -282,7 +279,7 @@ struct VideoPlayerWrapperView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             if isFinishedPlaying {
                 isFinishedPlaying = false
-                player.seek(to: CMTime.zero)
+                playerViewModel.player.seek(to: CMTime.zero)
                 progress = .zero
                 lastDraggedValue = .zero
             }
