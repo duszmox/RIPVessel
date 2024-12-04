@@ -64,9 +64,8 @@ struct VideoView: View {
                                 Text(String(vm.post?.dislikes ?? 0))
                             }
                         }
-                        AsyncAttributedTextView(htmlString: vm.description)
-                        
-                        
+                        CollapsibleAsyncAttributedTextView(htmlString: vm.description)
+                            .padding()
                         Spacer()
                     }
                     .onRotate { orientation in
