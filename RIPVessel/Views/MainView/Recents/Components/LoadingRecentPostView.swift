@@ -28,7 +28,6 @@ struct LoadingRecentPostView: View {
                     stopAnimatingColors()
                 }
             
-            // Text lines
             RoundedRectangle(cornerRadius: 4)
                 .fill(LinearGradient(
                     gradient: Gradient(colors: [startingColor, endingColor]),
@@ -73,7 +72,3 @@ struct LoadingRecentPostView: View {
         }
     }
 }
-
-//#Preview {
-//    LoadingRecentPostView()
-//}

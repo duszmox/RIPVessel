@@ -19,8 +19,6 @@ struct CollapsibleAsyncAttributedTextView: View {
                 Text(attributedString)
                     .lineLimit(isExpanded ? nil : 3)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    // Remove or adjust fixedSize if necessary
-                    //.fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Loading...")
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -57,7 +55,6 @@ struct CollapsibleAsyncAttributedTextView: View {
     private func loadAttributedString(colorScheme: ColorScheme) async {
         if let data = htmlString.data(using: .utf8) {
             do {
-                // Create an NSAttributedString from HTML data
                 let nsAttributedString = try NSMutableAttributedString(
                     data: data,
                     options: [
@@ -67,20 +64,16 @@ struct CollapsibleAsyncAttributedTextView: View {
                     documentAttributes: nil
                 )
                 
-                // Define your custom UIFont and UIColor
                 let uiFont = UIFont.systemFont(ofSize: 16) // Customize the font as needed
                 let uiColor = colorScheme == .dark ? UIColor.white : UIColor.black
 
-                // Apply custom font and color to the entire NSAttributedString
                 nsAttributedString.addAttributes([
                     .font: uiFont,
                     .foregroundColor: uiColor
                 ], range: NSRange(location: 0, length: nsAttributedString.length))
 
-                // Convert NSAttributedString to AttributedString
                 let attributedString = AttributedString(nsAttributedString)
 
-                // Update the state
                 self.attributedString = attributedString
             } catch {
                 self.attributedString = AttributedString("Invalid HTML content")

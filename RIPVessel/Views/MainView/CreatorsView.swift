@@ -13,23 +13,6 @@ struct CreatorsView: View {
     
     var body: some View {
         VStack {
-            HStack {
-                Text("Home")
-                    .font(.title)
-                    .padding()
-                Button {
-                    Task {
-                        do {
-                           try await AuthService.shared.logout()
-                        }
-                        catch {
-                            print("Error: \(error)")
-                        }
-                    }
-                } label: {
-                    Text(UserDefaultsService.shared.user!.id)
-                }
-            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     if vm.creators.isEmpty {
@@ -48,7 +31,8 @@ struct CreatorsView: View {
                                 } label: {
                                     IconView(url: channel.icon.path, size: CGSize(width: 33, height: 33)).frame(width: 33, height: 33).clipShape(Circle())
                                     Text(channel.title)
-                                }
+                                }.buttonStyle(PlainButtonStyle())
+
                                
                             }.padding(EdgeInsets(top: 0, leading: 10, bottom: 0, trailing: 0))
                         }
@@ -61,10 +45,6 @@ struct CreatorsView: View {
             Task {
                 await vm.fetchSubscriptions()
             }
-        }
+        }.navigationTitle("Creators")
     }
-}
-
-#Preview {
-    CreatorsView()
 }

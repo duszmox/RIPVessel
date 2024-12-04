@@ -22,7 +22,6 @@ struct VideoPlayerWrapperView: View {
     @State private var duration: Double = 0
     @State private var isObserverAdded: Bool = false
 
-    // Properties passed in
     let videoURL: String
     @Binding var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
     @State var size: CGSize
@@ -33,8 +32,6 @@ struct VideoPlayerWrapperView: View {
     @State private var showQualitySheet = false
     let qualities: [Components.Schemas.CdnDeliveryV3Variant]
 
-    
-    // Use @StateObject for PlayerViewModel
     @StateObject private var playerViewModel: PlayerViewModel
     
 
@@ -220,7 +217,7 @@ struct VideoPlayerWrapperView: View {
                 isDragging: isDragging,
                 seekBackward: { seek(by: -10) },
                 seekForward: { seek(by: 10) },
-                playPauseAction: playPauseAction // Added back
+                playPauseAction: playPauseAction
             )
         }
     }

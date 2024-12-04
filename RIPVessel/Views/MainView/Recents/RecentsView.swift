@@ -53,6 +53,6 @@ struct RecentsView: View {
         }.onDisappear {
             AppDelegate.orientationLock = .allButUpsideDown
             UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
-        }
+        }.navigationTitle(isSpecificChannel ? "" : "Recent Posts")
     }
 }

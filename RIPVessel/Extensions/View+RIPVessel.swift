@@ -20,11 +20,6 @@ struct DeviceRotationViewModifier: ViewModifier {
     }
 }
 
-// A View wrapper to make the modifier easier to use
-extension View {
-   
-}
-
 extension View {
     func roundedBorder(cornerRadius: CGFloat, borderColor: Color, lineWidth: CGFloat) -> some View {
             self
@@ -58,3 +53,12 @@ extension View {
         .onPreferenceChange(ViewHeightKey.self, perform: onChange)
     }
 }
+
+
+#if canImport(UIKit)
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+#endif

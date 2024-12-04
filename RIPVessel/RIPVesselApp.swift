@@ -10,7 +10,7 @@ import Shake
 
 class AppDelegate: NSObject, UIApplicationDelegate {
         
-    static var orientationLock = UIInterfaceOrientationMask.all //By default you want all your views to rotate freely
+    static var orientationLock = UIInterfaceOrientationMask.portrait
 
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         return AppDelegate.orientationLock
@@ -57,6 +57,11 @@ struct MainView: View {
                        CreatorsView()
                    }.tabItem {
                            Label("Creators", systemImage: "books.vertical.fill")
+                   }
+                   NavigationStack {
+                       AccountView()
+                   }.tabItem {
+                           Label("Account", systemImage: "person.crop.circle.fill")
                    }
                }
            } else {

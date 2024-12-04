@@ -42,12 +42,10 @@ struct WebView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        // Get the system font
         let systemFont = UIFont.systemFont(ofSize: UIFont.systemFontSize)
         let fontName = systemFont.fontName
         let fontSize = systemFont.pointSize
 
-        // Detect the user interface style
         let textColor: String
         if UIScreen.main.traitCollection.userInterfaceStyle == .dark {
             textColor = "white"

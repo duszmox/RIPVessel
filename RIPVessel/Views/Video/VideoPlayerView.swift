@@ -37,12 +37,9 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
         let player = uiViewController.player
 
-        // Check if the AVPlayerItem has changed
         if let currentItem = player?.currentItem {
             if currentItem != context.coordinator.observedItem {
-                // Remove observers from the old item
                 context.coordinator.removeObservers()
-                // Add observers to the new item
                 context.coordinator.addObservers(to: currentItem)
             }
         }

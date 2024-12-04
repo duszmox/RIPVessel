@@ -11,6 +11,9 @@ extension LoginView {
     class ViewModel: ObservableObject {
         @Published var username: String = ""
         @Published var password: String = ""
+        var isFormValid: Bool {
+            !username.isEmpty && !password.isEmpty
+        }
         
         func login() async {
             do {

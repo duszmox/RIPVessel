@@ -121,7 +121,6 @@ extension VideoView {
                     interaction = try response.ok.body.json
                 }
                 
-                // Update the UI state on the main thread
                 await MainActor.run {
                     if let hasLiked = self.video?.userInteraction?.contains(.like), hasLiked {
                         if !interaction.contains(.like) {
@@ -139,7 +138,6 @@ extension VideoView {
                         self.post?.dislikes += 1
                     }
                     
-                    // Update user interaction
                     self.post?.userInteraction = interaction
                 }
             } catch {

@@ -20,7 +20,10 @@ struct QualitySelectionSheet: View {
 
             Divider()
 
-            List(qualities, id: \.self) { quality in
+            List(qualities.filter({ q in
+                q.url != ""
+                
+            }), id: \.self) { quality in
                 Button(action: {
                     currentQuality = quality
                     isPresented = false

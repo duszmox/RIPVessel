@@ -63,9 +63,12 @@ struct VideoView: View {
                                 Image(systemName: (vm.post?.userInteraction?.contains(.dislike) ?? false) ? "hand.thumbsdown.fill" : "hand.thumbsdown")
                                 Text(String(vm.post?.dislikes ?? 0))
                             }
-                        }
+                            Spacer()
+                        }.padding()
+                        
                         CollapsibleAsyncAttributedTextView(htmlString: vm.description)
                             .padding()
+                        
                         Spacer()
                     }
                     .onRotate { orientation in
@@ -85,7 +88,8 @@ struct VideoView: View {
         }
         .onChange(of: scenePhase, perform: { newPhase in
             if newPhase == .active {
-                isRotated = !UIDevice.current.orientation.isPortrait
+                UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+                isRotated = false
             }
         })
         .persistentSystemOverlays(.hidden)

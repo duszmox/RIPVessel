@@ -1,13 +1,13 @@
 //
-//  HomeViewModel.swift
+//  AccountViewModel.swift
 //  RIPVessel
 //
-//  Created by Gyula Kiri on 2024. 07. 27..
+//  Created by Gyula Kiri on 2024. 12. 04..
 //
 
 import Foundation
 
-extension CreatorsView {
+extension AccountView {
     class ViewModel: ObservableObject {
         @Published var creators: [Components.Schemas.CreatorModelV3]
         
