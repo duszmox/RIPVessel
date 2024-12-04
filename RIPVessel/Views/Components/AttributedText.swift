@@ -7,8 +7,6 @@
 
 import SwiftUI
 
-import SwiftUI
-
 struct AttributedText: UIViewRepresentable {
     private let attributedString: NSAttributedString
 
@@ -21,13 +19,12 @@ struct AttributedText: UIViewRepresentable {
         uiTextView.backgroundColor = .clear
         uiTextView.isEditable = false
         uiTextView.isScrollEnabled = false
-        uiTextView.setContentHuggingPriority(.defaultLow, for: .vertical)
-        uiTextView.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        uiTextView.setContentCompressionResistancePriority(.required, for: .vertical)
+        uiTextView.isSelectable = true
+        uiTextView.textContainerInset = .zero
+        uiTextView.textContainer.lineFragmentPadding = 0
         uiTextView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-
+        uiTextView.setContentHuggingPriority(.defaultHigh, for: .vertical)
         uiTextView.updateAttributedText(attributedString, for: uiTextView.traitCollection)
-
         return uiTextView
     }
 
@@ -47,6 +44,7 @@ struct AttributedText: UIViewRepresentable {
             ], range: NSRange(location: 0, length: mutableAttributedString.length))
 
             self.attributedText = mutableAttributedString
+            self.invalidateIntrinsicContentSize()
         }
 
         override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -66,8 +64,9 @@ struct AsyncAttributedTextView: View {
         Group {
             if let attributedString = attributedString {
                 AttributedText(attributedString)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Loading...") // Placeholder while loading asynchronously
+                Text("Loading...")
             }
         }
         .task {
@@ -88,7 +87,10 @@ struct AsyncAttributedTextView: View {
                     let data = Data(html.utf8)
                     let attributedString = try NSAttributedString(
                         data: data,
-                        options: [.documentType: NSAttributedString.DocumentType.html, .characterEncoding: String.Encoding.utf8.rawValue],
+                        options: [
+                            .documentType: NSAttributedString.DocumentType.html,
+                            .characterEncoding: String.Encoding.utf8.rawValue
+                        ],
                         documentAttributes: nil
                     )
                     continuation.resume(returning: attributedString)

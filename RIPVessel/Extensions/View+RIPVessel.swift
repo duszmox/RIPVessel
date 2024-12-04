@@ -38,3 +38,23 @@ extension View {
         self.modifier(DeviceRotationViewModifier(action: action))
     }
 }
+
+struct ViewHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+extension View {
+    func readHeight(onChange: @escaping (CGFloat) -> Void) -> some View {
+        background(
+            GeometryReader { geometry in
+                Color.clear
+                    .preference(key: ViewHeightKey.self, value: geometry.size.height)
+            }
+        )
+        .onPreferenceChange(ViewHeightKey.self, perform: onChange)
+    }
+}

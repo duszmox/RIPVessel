@@ -8,7 +8,7 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     @Binding var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
     @Binding var isBuffering: Bool
     
-    var player: AVPlayer // Remove @State
+    var player: AVPlayer
 
     @Binding var progress: CGFloat
 
@@ -20,8 +20,10 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         controller.updatesNowPlayingInfoCenter = true
         controller.showsPlaybackControls = false
 
-        addObservers(to: controller.player!.currentItem!, context: context)
-        
+        if let currentItem = player.currentItem {
+            context.coordinator.addObservers(to: currentItem)
+        }
+
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback)
             try AVAudioSession.sharedInstance().setActive(true)
@@ -33,62 +35,76 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        let player = uiViewController.player
+
+        // Check if the AVPlayerItem has changed
+        if let currentItem = player?.currentItem {
+            if currentItem != context.coordinator.observedItem {
+                // Remove observers from the old item
+                context.coordinator.removeObservers()
+                // Add observers to the new item
+                context.coordinator.addObservers(to: currentItem)
+            }
+        }
+
         if play {
-            player.play()
+            player?.play()
         } else {
-            player.pause()
+            player?.pause()
         }
     }
     
-    private func createAVItem() -> AVPlayerItem {
-        let asset = AVURLAsset(url: URL(string: url.absoluteString + (currentQuality?.url ?? ""))!, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true, AVURLAssetHTTPCookiesKey: HTTPCookieStorage.shared.cookies as Any])
-        let item = AVPlayerItem(asset: asset)
-        return item
-    }
-    
-    private func addObservers(to item: AVPlayerItem, context: Context) {
-        item.addObserver(context.coordinator, forKeyPath: "status", options: [.old, .new], context: nil)
-        item.addObserver(context.coordinator, forKeyPath: "playbackBufferEmpty", options: [.old, .new], context: nil)
-        item.addObserver(context.coordinator, forKeyPath: "playbackLikelyToKeepUp", options: [.old, .new], context: nil)
+    static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: Coordinator) {
+        coordinator.removeObservers()
     }
 
-    static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: Coordinator) {
-        if let currentItem = uiViewController.player?.currentItem {
-            currentItem.removeObserver(coordinator, forKeyPath: "status")
-            currentItem.removeObserver(coordinator, forKeyPath: "playbackBufferEmpty")
-            currentItem.removeObserver(coordinator, forKeyPath: "playbackLikelyToKeepUp")
-        }
-    }
-    
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
-    
+
     class Coordinator: NSObject {
         var parent: VideoPlayerView
+        var observedItem: AVPlayerItem?
 
         init(_ parent: VideoPlayerView) {
             self.parent = parent
         }
-        
-        override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+
+        func addObservers(to item: AVPlayerItem) {
+            item.addObserver(self, forKeyPath: "status", options: [.old, .new], context: nil)
+            item.addObserver(self, forKeyPath: "playbackBufferEmpty", options: [.old, .new], context: nil)
+            item.addObserver(self, forKeyPath: "playbackLikelyToKeepUp", options: [.old, .new], context: nil)
+            observedItem = item
+        }
+
+        func removeObservers() {
+            if let item = observedItem {
+                item.removeObserver(self, forKeyPath: "status")
+                item.removeObserver(self, forKeyPath: "playbackBufferEmpty")
+                item.removeObserver(self, forKeyPath: "playbackLikelyToKeepUp")
+                observedItem = nil
+            }
+        }
+
+        override func observeValue(
+            forKeyPath keyPath: String?,
+            of object: Any?,
+            change: [NSKeyValueChangeKey : Any]?,
+            context: UnsafeMutableRawPointer?
+        ) {
             guard let item = object as? AVPlayerItem else { return }
-            
+
             if keyPath == "status" {
                 if item.status == .failed {
                     print("Failed to load video")
                 }
             } else if keyPath == "playbackBufferEmpty" {
-                if item.isPlaybackBufferEmpty {
-                    DispatchQueue.main.async {
-                        self.parent.isBuffering = true
-                    }
+                DispatchQueue.main.async {
+                    self.parent.isBuffering = item.isPlaybackBufferEmpty
                 }
             } else if keyPath == "playbackLikelyToKeepUp" {
-                if item.isPlaybackLikelyToKeepUp {
-                    DispatchQueue.main.async {
-                        self.parent.isBuffering = false
-                    }
+                DispatchQueue.main.async {
+                    self.parent.isBuffering = !item.isPlaybackLikelyToKeepUp
                 }
             }
         }

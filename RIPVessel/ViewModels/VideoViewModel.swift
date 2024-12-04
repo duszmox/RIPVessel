@@ -26,7 +26,7 @@ extension VideoView {
         @MainActor
         private func initialize(post: Components.Schemas.BlogPostModelV3) async {
             do {
-                var fetchedPost = try await fetchPostContent(by: post.id)
+                let fetchedPost = try await fetchPostContent(by: post.id)
                 self.post = fetchedPost
                 await fetchVideoContent()
                 await fetchDeliveryInfo()

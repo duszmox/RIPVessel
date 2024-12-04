@@ -30,12 +30,18 @@ struct VideoPlayerWrapperView: View {
     @State var title: String
     @Binding var isRotated: Bool
 
+    @State private var showQualitySheet = false
+    let qualities: [Components.Schemas.CdnDeliveryV3Variant]
+
+    
     // Use @StateObject for PlayerViewModel
     @StateObject private var playerViewModel: PlayerViewModel
+    
 
     init(
         videoURL: String,
         currentQuality: Binding<Components.Schemas.CdnDeliveryV3Variant?>,
+        qualities: [Components.Schemas.CdnDeliveryV3Variant],
         size: CGSize = .zero,
         safeArea: EdgeInsets = .init(),
         isRotated: Binding<Bool>,
@@ -47,6 +53,7 @@ struct VideoPlayerWrapperView: View {
         self.safeArea = safeArea
         _isRotated = isRotated
         self.title = title
+        self.qualities = qualities
 
         let url = URL(string: videoURL + (currentQuality.wrappedValue?.url ?? ""))!
         _playerViewModel = StateObject(wrappedValue: PlayerViewModel(url: url))
@@ -125,6 +132,23 @@ struct VideoPlayerWrapperView: View {
                     isRotated: isRotated,
                     safeArea: safeArea
                 )
+                .padding(.top, 10)
+                .padding(.leading, 10)
+            }
+            .overlay(alignment: .topTrailing) {
+                if showPlayerControls {
+                    Button(action: {
+                        showQualitySheet.toggle()
+                    }) {
+                        Image(systemName: "ellipsis.circle")
+                            .resizable()
+                            .frame(width: 20, height: 20)
+                            .padding()
+                            .foregroundColor(.white)
+                    }
+                    .padding(.top, 10)
+                    .padding(.trailing, 10)
+                }
             }
         }
         .background {
@@ -161,6 +185,13 @@ struct VideoPlayerWrapperView: View {
             playerViewModel.player.pause()
         }
         .navigationBarBackButtonHidden(isRotated)
+        .sheet(isPresented: $showQualitySheet) {
+            QualitySelectionSheet(
+                qualities: qualities,
+                currentQuality: $currentQuality,
+                isPresented: $showQualitySheet
+            )
+        }
     }
 
     // MARK: - Overlays

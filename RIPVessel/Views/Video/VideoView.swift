@@ -24,13 +24,17 @@ struct VideoView: View {
         GeometryReader { geometry in
             ZStack(alignment: isRotated ? .center : .top) {
                 if let stream = vm.stream {
-                    VideoPlayerWrapperView(videoURL: (stream.groups.first?.origins?.first?.url ?? ""),
-                                           currentQuality: $vm.currentQuality,
-                                           size: geometry.size,
-                                           safeArea: geometry.safeAreaInsets,
-                                           isRotated: $isRotated, title: vm.video?.title ?? "")
-                        .aspectRatio(16/9, contentMode: .fit)
-                        .zIndex(10000)
+                    VideoPlayerWrapperView(
+                        videoURL: (stream.groups.first?.origins?.first?.url ?? ""),
+                        currentQuality: $vm.currentQuality,
+                        qualities: vm.qualities,
+                        size: geometry.size,
+                        safeArea: geometry.safeAreaInsets,
+                        isRotated: $isRotated,
+                        title: vm.video?.title ?? ""
+                    )
+                    .aspectRatio(16/9, contentMode: .fit)
+                    .zIndex(10000)
                 }
                 ScrollView {
                     VStack {
@@ -60,35 +64,9 @@ struct VideoView: View {
                                 Text(String(vm.post?.dislikes ?? 0))
                             }
                         }
+                        AsyncAttributedTextView(htmlString: vm.description)
                         
-                        ZStack {
-                            VStack(alignment: .leading) {
-                                    ScrollView {
-                                        AsyncAttributedTextView(htmlString: vm.description)
-                                            .padding()
-                                    }
-                                    .frame(maxHeight: isDescriptionExpanded ? .infinity : 150)
-                                    .scrollDisabled(true)
-                                
-                                Button(action: {
-                                    withAnimation {
-                                        isDescriptionExpanded.toggle()
-                                    }
-                                }) {
-                                    Text(isDescriptionExpanded ? "Collapse" : "Expand")
-                                }
-                                .padding()
-                            }
-                        }
                         
-                        Picker("Select Quality", selection: $vm.currentQuality) {
-                            ForEach(vm.qualities, id: \.self) { quality in
-                                Text(quality.label)
-                                    .tag(quality as Components.Schemas.CdnDeliveryV3Variant)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        .padding()
                         Spacer()
                     }
                     .onRotate { orientation in
