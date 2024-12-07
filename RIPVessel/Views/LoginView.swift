@@ -23,6 +23,7 @@ struct LoginView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 20) {
+                Spacer()
                 Text("RIPVessel")
                     .font(.largeTitle)
                     .fontWeight(.bold)

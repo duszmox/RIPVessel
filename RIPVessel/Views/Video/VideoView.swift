@@ -7,7 +7,6 @@
 
 
 import SwiftUI
-import AVKit
 
 struct VideoView: View {
     @StateObject private var vm: ViewModel
@@ -81,11 +80,10 @@ struct VideoView: View {
                 .toolbar(.hidden, for: .tabBar)
             }
         }
-        .onAppear {
-            UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
-            
+        .onAppear(perform: {
             AppDelegate.orientationLock = .allButUpsideDown
-        }
+            AppDelegate.rotateScreen(to: .portrait)
+        })
         .onChange(of: scenePhase, perform: { newPhase in
             if newPhase == .active {
                 UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")

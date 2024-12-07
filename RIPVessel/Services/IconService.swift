@@ -44,7 +44,7 @@ class IconService: ObservableObject {
         URLSession.shared.dataTask(with: request) { data, response, error in
                    guard let response = response, let data = data, error == nil else {
                        DispatchQueue.main.async {
-                           self.pendingImages[finalURL.absoluteString] = UIImage(data: Data())
+                           self.pendingImages[finalURL.absoluteString] = UIImage()
                        }
                        return
                    }

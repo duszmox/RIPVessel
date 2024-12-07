@@ -157,12 +157,12 @@ struct VideoPlayerWrapperView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isRotated = true
                     }
-                    rotateScreen(to: .landscape)
+                    AppDelegate.rotateScreen(to: .landscape)
                 } else {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isRotated = false
                     }
-                    rotateScreen(to: .portrait)
+                    AppDelegate.rotateScreen(to: .portrait)
                 }
             }
         )
@@ -287,19 +287,12 @@ struct VideoPlayerWrapperView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isRotated = false
             }
-            rotateScreen(to: .portrait)
+            AppDelegate.rotateScreen(to: .portrait)
         } else {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isRotated = true
             }
-            rotateScreen(to: .landscape)
-        }
-    }
-
-    func rotateScreen(to orientation: UIInterfaceOrientationMask) {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-        windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation)) { error in
-            print("Error updating geometry: \(error)")
+            AppDelegate.rotateScreen(to: .landscape)
         }
     }
 

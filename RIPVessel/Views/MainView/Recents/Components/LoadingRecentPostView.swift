@@ -7,8 +7,8 @@
 import SwiftUI
 
 struct LoadingRecentPostView: View {
-    @State private var startingColor: Color = Color(red: 100/255, green: 100/255, blue: 100/255)
-    @State private var endingColor: Color = Color(red: 44/255, green: 44/255, blue: 44/255)
+    @State private var startingColor: Color = Color("loadingColorPrimary")
+    @State private var endingColor: Color = Color("loadingColorSecondary")
     @State private var isAnimating: Bool = false
 
     var body: some View {
@@ -61,8 +61,8 @@ struct LoadingRecentPostView: View {
         guard isAnimating else { return }
 
         withAnimation(Animation.easeInOut(duration: 1)) {
-            startingColor = startingColor == Color(red: 100/255, green: 100/255, blue: 100/255) ? Color(red: 44/255, green: 44/255, blue: 44/255) : Color(red: 100/255, green: 100/255, blue: 100/255)
-            endingColor = endingColor == Color(red: 44/255, green: 44/255, blue: 44/255) ? Color(red: 100/255, green: 100/255, blue: 100/255) : Color(red: 44/255, green: 44/255, blue: 44/255)
+            startingColor = startingColor == startingColor ? endingColor : startingColor
+            endingColor = endingColor == endingColor ? startingColor : endingColor
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {

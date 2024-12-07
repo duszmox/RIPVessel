@@ -25,6 +25,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
            #endif
            return true
      }
+    
+    static func rotateScreen(to orientation: UIInterfaceOrientationMask) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        windowScene.requestGeometryUpdate(.iOS(interfaceOrientations: orientation)) { error in
+            if let err = error as? UISceneError, err.code == .geometryRequestUnsupported {
+                AppDelegate.orientationLock = .allButUpsideDown
+                DispatchQueue.main.async {
+                    self.rotateScreen(to: orientation)
+                }
+            }
+            print("Error updating geometry: \(error)")
+        }
+    }
 }
 
 @main
