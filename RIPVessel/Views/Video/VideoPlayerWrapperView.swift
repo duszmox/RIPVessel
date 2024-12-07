@@ -21,6 +21,7 @@ struct VideoPlayerWrapperView: View {
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
     @State private var isObserverAdded: Bool = false
+    let initialProgress: Int?
 
     let videoURL: String
     @Binding var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
@@ -32,8 +33,8 @@ struct VideoPlayerWrapperView: View {
     @State private var showQualitySheet = false
     let qualities: [Components.Schemas.CdnDeliveryV3Variant]
 
-    @StateObject private var playerViewModel: PlayerViewModel
-    
+    @StateObject private var vm: PlayerViewModel
+    var observeProgress: (Double) -> Void
 
     init(
         videoURL: String,
@@ -42,18 +43,21 @@ struct VideoPlayerWrapperView: View {
         size: CGSize = .zero,
         safeArea: EdgeInsets = .init(),
         isRotated: Binding<Bool>,
-        title: String
+        title: String,
+        initialProgress: Int?,
+        observeProgress: @escaping (Double) -> Void
     ) {
         self.videoURL = videoURL
-        _currentQuality = currentQuality
         self.size = size
         self.safeArea = safeArea
         _isRotated = isRotated
+        _currentQuality = currentQuality
         self.title = title
         self.qualities = qualities
-
         let url = URL(string: videoURL + (currentQuality.wrappedValue?.url ?? ""))!
-        _playerViewModel = StateObject(wrappedValue: PlayerViewModel(url: url))
+        _vm = StateObject(wrappedValue: PlayerViewModel(url: url))
+        self.observeProgress = observeProgress
+        self.initialProgress = initialProgress
     }
 
     var body: some View {
@@ -68,8 +72,10 @@ struct VideoPlayerWrapperView: View {
                 play: $isPlaying,
                 currentQuality: $currentQuality,
                 isBuffering: $isBuffering,
-                player: playerViewModel.player,
-                progress: $progress
+                player: vm.player,
+                progress: $progress,
+                initialProgress: initialProgress,
+                observeProgress: observeProgress
             )
             .overlay {
                 videoOverlays
@@ -94,10 +100,10 @@ struct VideoPlayerWrapperView: View {
                     isRotated: isRotated,
                     size: size,
                     seekAction: { newProgress in
-                        if let currentPlayerItem = playerViewModel.player.currentItem {
+                        if let currentPlayerItem = vm.player.currentItem {
                             let totalDuration = currentPlayerItem.duration.seconds
                             currentTime = newProgress * totalDuration
-                            playerViewModel.player.seek(to: .init(seconds: totalDuration * newProgress, preferredTimescale: 1))
+                            vm.player.seek(to: .init(seconds: totalDuration * newProgress, preferredTimescale: 1))
                             if isPlaying {
                                 timeoutControls()
                             }
@@ -171,7 +177,9 @@ struct VideoPlayerWrapperView: View {
         .zIndex(10000)
         .onChange(of: currentQuality) { newQuality in
             let newURL = URL(string: videoURL + (newQuality?.url ?? ""))!
-            playerViewModel.updatePlayerItem(url: newURL)
+            let currentTime = vm.player.currentTime().seconds
+            vm.updatePlayerItem(url: newURL)
+            vm.player.seek(to: .init(seconds: currentTime, preferredTimescale: 1))
         }
         .onAppear {
             AppDelegate.orientationLock = .allButUpsideDown
@@ -179,7 +187,7 @@ struct VideoPlayerWrapperView: View {
             isPlaying.toggle()
         }
         .onDisappear {
-            playerViewModel.player.pause()
+            vm.player.pause()
         }
         .navigationBarBackButtonHidden(isRotated)
         .sheet(isPresented: $showQualitySheet) {
@@ -226,13 +234,13 @@ struct VideoPlayerWrapperView: View {
 
     func setupPlayerObserver() {
         guard !isObserverAdded else { return }
-        playerViewModel.player.addPeriodicTimeObserver(
+        vm.player.addPeriodicTimeObserver(
             forInterval: .init(seconds: 1, preferredTimescale: 1),
             queue: .main
         ) { time in
-            if let currentPlayerItem = playerViewModel.player.currentItem {
+            if let currentPlayerItem = vm.player.currentItem {
                 let totalDuration = currentPlayerItem.duration.seconds
-                let currentDuration = playerViewModel.player.currentTime().seconds
+                let currentDuration = vm.player.currentTime().seconds
                 let calculatedProgress = currentDuration / totalDuration
                 if !isSeeking {
                     progress = calculatedProgress
@@ -249,9 +257,9 @@ struct VideoPlayerWrapperView: View {
     }
 
     func seek(by seconds: Double) {
-        if let currentPlayerItem = playerViewModel.player.currentItem {
+        if let currentPlayerItem = vm.player.currentItem {
             let totalDuration = currentPlayerItem.duration.seconds
-            let currentDuration = playerViewModel.player.currentTime().seconds
+            let currentDuration = vm.player.currentTime().seconds
             var newTime = currentDuration + seconds
             if newTime < 0 {
                 newTime = 0
@@ -263,7 +271,7 @@ struct VideoPlayerWrapperView: View {
             let newProgress = newTime / totalDuration
             progress = newProgress
             lastDraggedValue = newProgress
-            playerViewModel.player.seek(to: .init(seconds: newTime, preferredTimescale: 1))
+            vm.player.seek(to: .init(seconds: newTime, preferredTimescale: 1))
             if isPlaying {
                 timeoutControls()
             }
@@ -300,7 +308,7 @@ struct VideoPlayerWrapperView: View {
         withAnimation(.easeOut(duration: 0.2)) {
             if isFinishedPlaying {
                 isFinishedPlaying = false
-                playerViewModel.player.seek(to: CMTime.zero)
+                vm.player.seek(to: CMTime.zero)
                 progress = .zero
                 lastDraggedValue = .zero
             }

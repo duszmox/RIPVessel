@@ -105,6 +105,14 @@ extension VideoView {
             }
         }
         
+        func uploadProgress(_ progress: Double) {
+            print(progress)
+            guard let video else {return}
+            Task {
+                try await ApiService.shared.client.updateProgress(body: Operations.updateProgress.Input.Body.json(Components.Schemas.UpdateProgressRequest(id: video.id, contentType: .video, progress: Int(progress))))
+            }
+        }
+        
         private func updateUserInteraction(action: Components.Schemas.UserInteractionModelPayload) async {
             do {
                 let request = Components.Schemas.ContentLikeV3Request(

@@ -3,15 +3,16 @@ import AVKit
 
 struct VideoPlayerView: UIViewControllerRepresentable {
     let url: URL
-        
     @Binding var play: Bool
     @Binding var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
     @Binding var isBuffering: Bool
-    
     var player: AVPlayer
-
     @Binding var progress: CGFloat
+    let initialProgress: Int?
 
+    // Add a token for the time observer
+    @State private var timeObserverToken: Any?
+    var observeProgress: (Double) -> Void
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = player
@@ -23,13 +24,24 @@ struct VideoPlayerView: UIViewControllerRepresentable {
         if let currentItem = player.currentItem {
             context.coordinator.addObservers(to: currentItem)
         }
+        if let initialProgress {
+            player.seek(to: CMTime(seconds: CGFloat(initialProgress), preferredTimescale: 1))
+        }
 
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback)
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("Failed to set audio session category: \(error)")
         }
+
+        let interval = CMTimeMakeWithSeconds(15, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        let token = player.addPeriodicTimeObserver(forInterval: interval, queue: .main) { _ in
+            reportProgress()
+            
+        }
+        
+        context.coordinator.timeObserverToken = token
 
         return controller
     }
@@ -53,15 +65,32 @@ struct VideoPlayerView: UIViewControllerRepresentable {
     
     static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: Coordinator) {
         coordinator.removeObservers()
+        
+        if let player = uiViewController.player, let token = coordinator.timeObserverToken {
+            player.removeTimeObserver(token)
+        }
+        
+        coordinator.parent.reportProgress()
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
+    func reportProgress() {
+        guard let currentTime = player.currentItem?.currentTime(),
+              let duration = player.currentItem?.duration,
+              duration.isNumeric && duration.seconds > 0 else {
+            return
+        }
+        let progress = currentTime.seconds
+        observeProgress(progress)
+    }
+
     class Coordinator: NSObject {
         var parent: VideoPlayerView
         var observedItem: AVPlayerItem?
+        var timeObserverToken: Any?
 
         init(_ parent: VideoPlayerView) {
             self.parent = parent

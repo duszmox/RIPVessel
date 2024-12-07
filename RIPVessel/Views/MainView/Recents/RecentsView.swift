@@ -29,14 +29,15 @@ struct RecentsView: View {
                 LoadingRecentPostView()
             }
             ForEach(vm.recents, id: \.id) { recent in
-                RecentPostView(post: recent, isSpecificChannel: isSpecificChannel)
-                    .onAppear {
-                        Task {
-                            if recent.id == vm.recents.last?.id {
-                                await vm.fetchRecents()
+                RecentPostView(post: recent, isSpecificChannel: isSpecificChannel, progress: vm.progresses[recent.id], updateProgress: vm.updateProgress)
+                        .onAppear {
+                            Task {
+                                if recent.id == vm.recents.last?.id {
+                                    await vm.fetchRecents()
+                                }
                             }
-                        }
-                    }
+                }
+               
             }.onAppear {
                 scrollEnabled = true
             }

@@ -10,23 +10,25 @@ import SwiftUI
 struct RecentPostView: View {
     @StateObject private var vm: ViewModel
     @StateObject private var router = Router.shared
+    var progress: Int?
+    var updateProgress: (String) -> Void
 
-    init(post: Components.Schemas.BlogPostModelV3, isSpecificChannel: Bool = false) {
+    init(post: Components.Schemas.BlogPostModelV3, isSpecificChannel: Bool = false, progress: Int?, updateProgress: @escaping (String) -> Void) {
         _vm = StateObject(wrappedValue: ViewModel(post: post, isSpecificChannel: isSpecificChannel))
+        self.progress = progress
+        self.updateProgress = updateProgress
     }
     
     var body: some View {
         VStack(alignment: .leading) {
             if let thumbnail = vm.post.thumbnail?.value1.path {
                 NavigationLink {
-                    VideoView(post: vm.post)
+                    VideoView(post: vm.post, updateProgress: updateProgress)
                 } label: {
                     ZStack(alignment: .bottomTrailing) {
                         IconView(url: thumbnail)
                             .aspectRatio(16/9, contentMode: .fit)
-                            .cornerRadius(8).padding([.leading, .trailing], 4)
                         HStack {
-                            
                             if vm.post.metadata.hasVideo {
                                 let text = vm.post.metadata.videoDuration.asString(style: .positional)
                                 Text(text)
@@ -37,9 +39,24 @@ struct RecentPostView: View {
                                     .cornerRadius(5)
                             }
                         }
-
                         .padding(8)
-                    }
+                        if let progress {
+                            GeometryReader { geometry in
+                                ZStack(alignment: .leading) {
+                                    Rectangle()
+                                        .foregroundColor(Color.gray.opacity(0.3))
+                                        .frame(height: 10)
+
+                                    Rectangle()
+                                        .foregroundColor(.pink)
+                                        .frame(width: geometry.size.width * (CGFloat(progress) / 100),
+                                               height: 10)
+                                }
+
+                            }
+                            .frame(height: 10)
+                        }
+                    }.cornerRadius(8).padding([.leading, .trailing], 4)
                 }
             }
             

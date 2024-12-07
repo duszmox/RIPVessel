@@ -14,9 +14,11 @@ struct VideoView: View {
     @State private var webViewHeight: CGFloat = .zero
     @Environment(\.scenePhase) var scenePhase
     @State private var isDescriptionExpanded: Bool = false
+    var updateProgress: (String) -> Void
     
-    init(post: Components.Schemas.BlogPostModelV3) {
+    init(post: Components.Schemas.BlogPostModelV3, updateProgress: @escaping (String) -> Void) {
         _vm = StateObject(wrappedValue: ViewModel(post: post))
+        self.updateProgress = updateProgress
     }
     
     var body: some View {
@@ -30,7 +32,11 @@ struct VideoView: View {
                         size: geometry.size,
                         safeArea: geometry.safeAreaInsets,
                         isRotated: $isRotated,
-                        title: vm.video?.title ?? ""
+                        title: vm.video?.title ?? "",
+                        initialProgress: vm.video?.progress,
+                        observeProgress: { p in
+                            vm.uploadProgress(p)
+                        }
                     )
                     .aspectRatio(16/9, contentMode: .fit)
                     .zIndex(10000)
@@ -84,6 +90,9 @@ struct VideoView: View {
             AppDelegate.orientationLock = .allButUpsideDown
             AppDelegate.rotateScreen(to: .portrait)
         })
+        .onDisappear {
+            updateProgress(vm.post?.id ?? "")
+        }
         .onChange(of: scenePhase, perform: { newPhase in
             if newPhase == .active {
                 UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")

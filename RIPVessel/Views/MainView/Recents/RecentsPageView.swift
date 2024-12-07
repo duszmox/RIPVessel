@@ -19,11 +19,11 @@ struct RecentsPageView: View {
         }
         .scrollDisabled(!scrollEnabled)
         .onAppear {
-           UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation") // Forcing the rotation to portrait
+           AppDelegate.rotateScreen(to: .portrait)
            AppDelegate.orientationLock = .portrait
         }.onDisappear {
            AppDelegate.orientationLock = .allButUpsideDown
-           UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
+           AppDelegate.rotateScreen(to: .portrait)
         }.navigationTitle("Recent Posts")
 
     }

@@ -25,7 +25,9 @@ struct QualitySelectionSheet: View {
                 
             }), id: \.self) { quality in
                 Button(action: {
-                    currentQuality = quality
+                    DispatchQueue.main.async {
+                        self.currentQuality = quality
+                    }
                     isPresented = false
                 }) {
                     HStack {

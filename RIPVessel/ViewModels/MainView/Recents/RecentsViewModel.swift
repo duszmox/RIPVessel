@@ -10,6 +10,7 @@ import Foundation
 extension RecentsView {
     class ViewModel: ObservableObject {
         @Published var recents: [Components.Schemas.BlogPostModelV3] = []
+        @Published var progresses: [String:Int] = [:]
         @Published var channelId: String?
         @Published var creatorId: String?
         private var offset = 0
@@ -20,6 +21,22 @@ extension RecentsView {
             }
             if let creatorId {
                 self.creatorId = creatorId
+            }
+        }
+        
+        func updateProgress(for post: String) {
+            Task {
+                do {
+                    let progressResult = try await ApiService.shared.client.getProgress(body: .json(.init(ids: [post], contentType: .blogPost)))
+                    let progresses = try progressResult.ok.body.json
+                    DispatchQueue.main.async {
+                        for progress in progresses {
+                            self.progresses[progress.id] = progress.progress
+                        }
+                    }
+                } catch {
+                    print("Error fetching progress: \(error)")
+                }
             }
         }
         
@@ -45,6 +62,13 @@ extension RecentsView {
                             print("Recent: \(recentResult)")
                             let recent = try recentResult.ok.body.json
                             await recentsPerCreatorStorage.add(item: recent)
+                            let progressResult = try await ApiService.shared.client.getProgress(body: .json(.init(ids: recent.compactMap({$0.id}), contentType: .blogPost)))
+                            let progresses = try progressResult.ok.body.json
+                            DispatchQueue.main.async {
+                                for progress in progresses {
+                                    self.progresses[progress.id] = progress.progress
+                                }
+                            }
                         } catch {
                             print("Error fetching creator: \(error)")
                         }
