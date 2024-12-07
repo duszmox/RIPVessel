@@ -62,7 +62,7 @@ struct MainView: View {
            if auth.loggedIn {
                TabView {
                    NavigationStack {
-                       RecentsView()
+                       RecentsPageView()
                    }.tabItem {
                            Label("Recents", systemImage: "play.house.fill")
                        }
