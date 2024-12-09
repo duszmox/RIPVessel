@@ -36,6 +36,7 @@ struct MainView: View {
                                withAnimation(.easeInOut(duration: 0.3)) {
                                    config.showMiniPlayer = false
                                }
+                               // Use a DispatchQueue to handle completion actions explicitly
                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                    config.resetPosition()
                                    config.selectedPlayerItem = nil

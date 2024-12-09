@@ -16,10 +16,12 @@ extension VideoView {
         @Published var video: Components.Schemas.ContentVideoV3Response?
         @Published var description: String
         
-        init(post: Components.Schemas.BlogPostModelV3) {
-            description = post.text
-            Task {
-                await initialize(post: post)
+        init(post: Components.Schemas.BlogPostModelV3?) {
+            description = post?.text ?? ""
+            if let post {
+                Task {
+                    await initialize(post: post)
+                }
             }
         }
         

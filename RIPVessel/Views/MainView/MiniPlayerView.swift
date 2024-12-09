@@ -11,46 +11,141 @@ struct MiniPlayerView: View {
     var size: CGSize
     @Binding var config: PlayerConfig
     var close: () -> Void
+
     /// Player Configuration
     let miniPlayerHeight: CGFloat = 50
-    let playerHeight: CGFloat = 180
-    
+    let playerHeight: CGFloat
+
     private var tabBarHeight: CGFloat {
         safeArea.bottom + 49
     }
+
+    @StateObject private var vm: VideoView.ViewModel
+    
+    init(size: CGSize, config: Binding<PlayerConfig>, close: @escaping () -> Void, isRotated: Bool = false) {
+        self.size = size
+        _config = config
+        self.close = close
+        self.isRotated = isRotated
+        _vm = .init(wrappedValue: VideoView.ViewModel(post: config.wrappedValue.selectedPlayerItem))
+        self.playerHeight = size.width / 16 * 9
+    }
+    @State private var isRotated = false
 
     var body: some View {
         let progress = config.progress > 0.7 ? (config.progress - 0.7) / 0.3 : 0
 
         VStack(spacing: 0) {
-            ZStack(alignment: .top) {
-                GeometryReader {
-                    let size = $0.size
-                    let width = size.width - 120
-                    let height = size.height
+            ZStack(alignment: isRotated ? .center : .top) {
+                    if let stream = vm.stream {
+                        GeometryReader {
+                            let size = $0.size
+                            let width = size.width - 120
+                            let height = size.height
+                            VideoPlayerWrapperView(
+                                videoURL: stream.groups.first?.origins?.first?.url ?? "",
+                                currentQuality: $vm.currentQuality,
+                                qualities: vm.qualities,
+                                size: size,
+                                safeArea: EdgeInsets(
+                                    top: safeArea.top,
+                                    leading: safeArea.left,
+                                    bottom: safeArea.bottom,
+                                    trailing: safeArea.right
+                                ),
+                                isRotated: $isRotated,
+                                title: vm.video?.title ?? "",
+                                initialProgress: vm.video?.progress,
+                                playerConfig: $config,
+                                observeProgress: { p in
+                                    vm.uploadProgress(p)
+                                }
+                            )
+                            .frame(
+                                width: 120 + (width - (width * progress)),
+                                height: height)
+                            .aspectRatio(16/9, contentMode: .fit)
+                        }.zIndex(1)
 
-                    Rectangle()
-                        .fill(Color.black)
-                        .frame(
-                            width: 120 + (width - (width * progress)),
-                            height: height
-                        )
-                }.zIndex(1)
+                    }
 
-                PlayerMinifiedContent()
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(vm.video?.title ?? "")
+                                .font(.callout)
+                                .lineLimit(1)
+                            Text(vm.post?.channel.title ?? "")
+                                .font(.caption)
+                                .foregroundStyle(.gray)
+                        }
+                        Spacer()
+
+                        Button(action: {}, label: {
+                            Image(systemName: "pause.fill")
+                                .font(.title2)
+                                .frame(width: 35, height: 35)
+                        })
+
+                        Button(action: close, label: {
+                            Image(systemName: "xmark")
+                                .font(.title2)
+                                .frame(width: 35, height: 35)
+                        })
+                    }
                     .padding(.leading, 130)
                     .padding(.trailing, 15)
                     .foregroundStyle(Color.primary)
                     .opacity(progress)
+                
             }
             .frame(minHeight: miniPlayerHeight, maxHeight: playerHeight)
             .zIndex(1)
-            ScrollView(.vertical) {
-                if let playerItem = config.selectedPlayerItem {
-                    PlayerExpandedContent(playerItem)
+            .onRotate { orientation in
+                if orientation == .portraitUpsideDown || orientation == .faceUp {
+                    return
                 }
+                isRotated = orientation == .landscapeLeft || orientation == .landscapeRight
             }
-            .opacity(1.0 - (config.progress * 1.6))
+
+            if let post = vm.post {
+                ScrollView {
+                    VStack {
+                        HStack {
+                            Text(vm.video?.title ?? "")
+                                .font(.title)
+                                .bold()
+                                .padding()
+                            Spacer()
+                        }
+
+                        HStack {
+                            Button {
+                                vm.like()
+                            } label: {
+                                Image(systemName: (post.userInteraction?.contains(.like) ?? false) ?
+                                      "hand.thumbsup.fill" : "hand.thumbsup")
+                                Text(String(post.likes))
+                            }
+
+                            Button {
+                                vm.dislike()
+                            } label: {
+                                Image(systemName: (post.userInteraction?.contains(.dislike) ?? false) ?
+                                      "hand.thumbsdown.fill" : "hand.thumbsdown")
+                                Text(String(post.dislikes))
+                            }
+                            Spacer()
+                        }
+                        .padding()
+
+                        CollapsibleAsyncAttributedTextView(htmlString: vm.description)
+                            .padding()
+
+                        Spacer()
+                    }
+                }
+                .opacity(1.0 - (config.progress * 1.6))
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(.background)
@@ -61,15 +156,15 @@ struct MiniPlayerView: View {
         .frame(maxHeight: .infinity, alignment: .bottom)
         .gesture(
             DragGesture()
-                .onChanged{ value in
+                .onChanged { value in
                     let start = value.startLocation.y
                     guard start < playerHeight || start > (size.height - (tabBarHeight+miniPlayerHeight)) else { return }
-                    
+
                     let height = config.lastPosition + value.translation.height
                     config.position = min(height, (size.height - miniPlayerHeight))
-                    generateProgress()
+                    generateProgress(size: size)
                 }
-                .onEnded{ value in
+                .onEnded { value in
                     let start = value.startLocation.y
                     guard start < playerHeight || start > (size.height - (tabBarHeight+miniPlayerHeight)) else { return }
 
@@ -79,77 +174,39 @@ struct MiniPlayerView: View {
                             config.position = (size.height - miniPlayerHeight)
                             config.lastPosition = config.position
                             config.progress = 1
+                            AppDelegate.orientationLock = .portrait
+                            AppDelegate.rotateScreen(to: .portrait)
                         } else {
+                            AppDelegate.orientationLock = .allButUpsideDown
+                            AppDelegate.rotateScreen(to: .portrait)
                             config.resetPosition()
                         }
                     }
                 }.simultaneously(with: TapGesture().onEnded { _ in
                     withAnimation(.smooth(duration: 0.3)) {
+                        AppDelegate.orientationLock = .allButUpsideDown
+                        AppDelegate.rotateScreen(to: .portrait)
                         config.resetPosition()
                     }
                 })
         )
-        /// Sliding In/Out
         .transition(.offset(y: config.progress == 1 ? tabBarHeight : size.height))
         .onChange(of: config.selectedPlayerItem) { newValue in
             withAnimation(.smooth(duration: 0.3)) {
                 config.resetPosition()
+                AppDelegate.orientationLock = .allButUpsideDown
+                AppDelegate.rotateScreen(to: .portrait)
             }
-        }
+        }.onAppear {
+            AppDelegate.orientationLock = .allButUpsideDown
+            AppDelegate.rotateScreen(to: .portrait)
+        }.onDisappear {
+            AppDelegate.orientationLock = .portrait
+            AppDelegate.rotateScreen(to: .portrait)
+        }.ignoresSafeArea(isRotated ? .all : .container)
     }
-    
-    @ViewBuilder
-    func PlayerMinifiedContent() -> some View {
-        if let playerItem = config.selectedPlayerItem {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 3, content: {
-                    Text("cim")
-                        .font(.callout)
-//                        .textScale(.secondary)
-                        .lineLimit(1)
-                    Text("channel")
-                        .font(.caption)
-                        .foregroundStyle(.gray)
-                })
-                .frame(maxHeight: .infinity)
-                .frame(maxHeight: 50)
 
-                Spacer(minLength: 0)
-
-                Button(action: {}, label: {
-                    Image(systemName: "pause.fill")
-                        .font(.title2)
-                        .frame(width: 35, height: 35)
-                        .contentShape(.rect)
-                })
-
-                Button(action: close, label: {
-                    Image(systemName: "xmark")
-                        .font(.title2)
-                        .frame(width: 35, height: 35)
-                        .contentShape(.rect)
-                })
-            }
-        }
-    }
-    
-    /// Player Expanded Content
-    @ViewBuilder
-    func PlayerExpandedContent(_ item: Components.Schemas.BlogPostModelV3) -> some View {
-        VStack(alignment: .leading, spacing: 15, content: {
-            Text(item.title)
-                .font(.title3)
-                .fontWeight(.semibold)
-
-            Text(item.text)
-                .font(.callout)
-        })
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(15)
-        .padding(.top, 10)
-    }
-    
-    func generateProgress() {
+    func generateProgress(size: CGSize) {
         let progress = max(min(config.position / (size.height - miniPlayerHeight), 1.0), .zero)
         config.progress = progress
     }
