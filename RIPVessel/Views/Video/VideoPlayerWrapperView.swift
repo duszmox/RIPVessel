@@ -36,6 +36,8 @@ struct VideoPlayerWrapperView: View {
 
     @StateObject private var vm: PlayerViewModel
     var observeProgress: (Double) -> Void
+    @State var aspectRatio: CGFloat = 0
+    @State var desiredHeight: CGFloat
 
     init(
         videoURL: String,
@@ -61,12 +63,18 @@ struct VideoPlayerWrapperView: View {
         self.observeProgress = observeProgress
         self.initialProgress = initialProgress
         _playerConfig = playerConfig
+        let aspectRatio: Double = Double(currentQuality.wrappedValue!.meta!.video!.value2.width!) / Double(currentQuality.wrappedValue!.meta!.video!.value2.height!)
+        
+        _aspectRatio = .init(initialValue: aspectRatio)
+        _desiredHeight = .init(initialValue: size.width / aspectRatio)
     }
 
     var body: some View {
+        let progress = playerConfig.progress > 0.7 ? (playerConfig.progress - 0.7) / 0.3 : 0
+        
         let videoPlayerSize: CGSize = .init(
-            width: isRotated ? size.height + safeArea.bottom + safeArea.top : size.width,
-            height: isRotated ? size.width + safeArea.leading + safeArea.trailing : .zero
+            width: isRotated ? size.height + safeArea.bottom + safeArea.top : playerConfig.progress > 0.9 ? (120 + ((size.width-120) - ((size.width-120) * playerConfig.progress))) : size.width,
+            height: isRotated ? size.width + safeArea.leading + safeArea.trailing : desiredHeight
         )
 
         ZStack(alignment: .center) {
@@ -117,7 +125,7 @@ struct VideoPlayerWrapperView: View {
                         }
                     }
                 )
-                .offset(y: isRotated ? -15 : 0)
+                .offset(y: isRotated ? -15 : 0).opacity(playerConfig.progress == 0 ? 1 : 0)
             }
             .overlay(alignment: .bottom) {
                 BottomControlsView(
@@ -176,7 +184,7 @@ struct VideoPlayerWrapperView: View {
 //                }
 //            }
 //        )
-        .frame(width: videoPlayerSize.width, height: isRotated ? videoPlayerSize.height : nil)
+        .frame(width: videoPlayerSize.width, height: videoPlayerSize.height)
         .frame(width: size.width)
         .zIndex(10000)
         .onChange(of: currentQuality) { newQuality in

@@ -15,9 +15,21 @@ extension VideoView {
         @Published var currentQuality: Components.Schemas.CdnDeliveryV3Variant?
         @Published var video: Components.Schemas.ContentVideoV3Response?
         @Published var description: String
+        @Published var isHidden: Bool = false
         
         init(post: Components.Schemas.BlogPostModelV3?) {
             description = post?.text ?? ""
+            if let post {
+                Task {
+                    await initialize(post: post)
+                }
+            }
+        }
+        
+        func updatePost(_ post: Components.Schemas.BlogPostModelV3?) {
+            description = post?.text ?? ""
+            self.post?.title = post?.title ?? ""
+            isHidden = true
             if let post {
                 Task {
                     await initialize(post: post)
@@ -32,6 +44,9 @@ extension VideoView {
                 self.post = fetchedPost
                 await fetchVideoContent()
                 await fetchDeliveryInfo()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.isHidden = false
+                }
             } catch {
                 print("Error initializing ViewModel: \(error)")
             }
@@ -108,7 +123,6 @@ extension VideoView {
         }
         
         func uploadProgress(_ progress: Double) {
-            print(progress)
             guard let video else {return}
             Task {
                 try await ApiService.shared.client.updateProgress(body: Operations.updateProgress.Input.Body.json(Components.Schemas.UpdateProgressRequest(id: video.id, contentType: .video, progress: Int(progress))))

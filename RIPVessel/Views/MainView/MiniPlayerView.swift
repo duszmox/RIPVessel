@@ -65,6 +65,7 @@ struct MiniPlayerView: View {
                                 width: 120 + (width - (width * progress)),
                                 height: height)
                             .aspectRatio(16/9, contentMode: .fit)
+                            .opacity(vm.isHidden ? 0 : 1)
                         }.zIndex(1)
 
                     }
@@ -192,6 +193,7 @@ struct MiniPlayerView: View {
         )
         .transition(.offset(y: config.progress == 1 ? tabBarHeight : size.height))
         .onChange(of: config.selectedPlayerItem) { newValue in
+            vm.updatePost(newValue)
             withAnimation(.smooth(duration: 0.3)) {
                 config.resetPosition()
                 AppDelegate.orientationLock = .allButUpsideDown

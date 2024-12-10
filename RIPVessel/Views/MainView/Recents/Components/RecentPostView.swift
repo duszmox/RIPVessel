@@ -87,9 +87,6 @@ struct RecentPostView: View {
                     Text("\(vm.getChannelModel(from: vm.post.channel)?.title ?? "") • \(vm.post.releaseDate.timeAgoString())")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                        .onTapGesture {
-                            print("channel clicked")
-                        }
                 }
             }
             .padding([.horizontal, .bottom], 8)
