@@ -21,6 +21,7 @@ struct VideoPlayerWrapperView: View {
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
     @State private var isObserverAdded: Bool = false
+    @Binding private var playerConfig: PlayerConfig
     let initialProgress: Int?
 
     let videoURL: String
@@ -35,6 +36,8 @@ struct VideoPlayerWrapperView: View {
 
     @StateObject private var vm: PlayerViewModel
     var observeProgress: (Double) -> Void
+    @State var aspectRatio: CGFloat = 0
+    @State var desiredHeight: CGFloat
 
     init(
         videoURL: String,
@@ -45,6 +48,7 @@ struct VideoPlayerWrapperView: View {
         isRotated: Binding<Bool>,
         title: String,
         initialProgress: Int?,
+        playerConfig: Binding<PlayerConfig>,
         observeProgress: @escaping (Double) -> Void
     ) {
         self.videoURL = videoURL
@@ -58,12 +62,19 @@ struct VideoPlayerWrapperView: View {
         _vm = StateObject(wrappedValue: PlayerViewModel(url: url))
         self.observeProgress = observeProgress
         self.initialProgress = initialProgress
+        _playerConfig = playerConfig
+        let aspectRatio: Double = Double(currentQuality.wrappedValue!.meta!.video!.value2.width!) / Double(currentQuality.wrappedValue!.meta!.video!.value2.height!)
+        
+        _aspectRatio = .init(initialValue: aspectRatio)
+        _desiredHeight = .init(initialValue: size.width / aspectRatio)
     }
 
     var body: some View {
+        let progress = playerConfig.progress > 0.7 ? (playerConfig.progress - 0.7) / 0.3 : 0
+        
         let videoPlayerSize: CGSize = .init(
-            width: isRotated ? size.height + safeArea.bottom + safeArea.top : size.width,
-            height: isRotated ? size.width + safeArea.leading + safeArea.trailing : .zero
+            width: isRotated ? size.height + safeArea.bottom + safeArea.top : playerConfig.progress > 0.9 ? (120 + ((size.width-120) - ((size.width-120) * playerConfig.progress))) : size.width,
+            height: isRotated ? size.width + safeArea.leading + safeArea.trailing : desiredHeight
         )
 
         ZStack(alignment: .center) {
@@ -81,6 +92,7 @@ struct VideoPlayerWrapperView: View {
                 videoOverlays
             }
             .onTapGesture {
+                guard playerConfig.progress != 1 else { return }
                 withAnimation(.easeInOut(duration: 0.35)) {
                     showPlayerControls.toggle()
                 }
@@ -113,7 +125,7 @@ struct VideoPlayerWrapperView: View {
                         }
                     }
                 )
-                .offset(y: isRotated ? -15 : 0)
+                .offset(y: isRotated ? -15 : 0).opacity(playerConfig.progress == 0 ? 1 : 0)
             }
             .overlay(alignment: .bottom) {
                 BottomControlsView(
@@ -157,22 +169,22 @@ struct VideoPlayerWrapperView: View {
         .background {
             Rectangle().fill(Color.black)
         }
-        .gesture(
-            DragGesture().onEnded { value in
-                if -value.translation.height > 100 {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isRotated = true
-                    }
-                    AppDelegate.rotateScreen(to: .landscape)
-                } else {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        isRotated = false
-                    }
-                    AppDelegate.rotateScreen(to: .portrait)
-                }
-            }
-        )
-        .frame(width: videoPlayerSize.width, height: isRotated ? videoPlayerSize.height : nil)
+//        .gesture(
+//            DragGesture().onEnded { value in
+//                if -value.translation.height > 100 {
+//                    withAnimation(.easeInOut(duration: 0.2)) {
+//                        isRotated = true
+//                    }
+//                    AppDelegate.rotateScreen(to: .landscape)
+//                } else {
+//                    withAnimation(.easeInOut(duration: 0.2)) {
+//                        isRotated = false
+//                    }
+//                    AppDelegate.rotateScreen(to: .portrait)
+//                }
+//            }
+//        )
+        .frame(width: videoPlayerSize.width, height: videoPlayerSize.height)
         .frame(width: size.width)
         .zIndex(10000)
         .onChange(of: currentQuality) { newQuality in
@@ -180,6 +192,11 @@ struct VideoPlayerWrapperView: View {
             let currentTime = vm.player.currentTime().seconds
             vm.updatePlayerItem(url: newURL)
             vm.player.seek(to: .init(seconds: currentTime, preferredTimescale: 1))
+        }
+        .onChange(of: playerConfig.progress) { newProgress in
+            if newProgress >= 1 || newProgress <= 0 {
+                showPlayerControls = false
+            }
         }
         .onAppear {
             AppDelegate.orientationLock = .allButUpsideDown

@@ -34,6 +34,7 @@ struct VideoView: View {
                         isRotated: $isRotated,
                         title: vm.video?.title ?? "",
                         initialProgress: vm.video?.progress,
+                        playerConfig: .constant(PlayerConfig()),
                         observeProgress: { p in
                             vm.uploadProgress(p)
                         }

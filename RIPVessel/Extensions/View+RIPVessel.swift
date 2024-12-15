@@ -53,6 +53,23 @@ extension View {
         .onPreferenceChange(ViewHeightKey.self, perform: onChange)
     }
 }
+///Extension for TabView items
+extension View {
+    @ViewBuilder
+    func setupTab(_ tab: Tab) -> some View {
+        self
+            .tag(tab)
+            .toolbar(.hidden, for: .tabBar)
+    }
+    
+    /// SafeArea Value
+    var safeArea: UIEdgeInsets {
+        if let safeArea = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.keyWindow?.safeAreaInsets {
+            return safeArea
+        }
+        return .zero
+    }
+}
 
 
 #if canImport(UIKit)

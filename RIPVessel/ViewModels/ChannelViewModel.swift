@@ -6,13 +6,16 @@
 //
 
 import Foundation
+import SwiftUICore
 
 extension ChannelView {
     class ViewModel: ObservableObject {
         @Published var creator: Components.Schemas.CreatorModelV3?
         @Published var channelId: String
+        @Binding var playerConfig: PlayerConfig
         
-        init(creatorId: String, channelId: String) {
+        init(creatorId: String, channelId: String, playerConfig: Binding<PlayerConfig>) {
+            _playerConfig = playerConfig
             self.channelId = channelId
             Task { [weak self] in
                 guard let self = self else { return }

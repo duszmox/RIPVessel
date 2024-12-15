@@ -11,9 +11,9 @@ struct ChannelView: View {
     let id: String
     @StateObject var vm: ViewModel
     
-    init(id: String, creatorId: String) {
+    init(id: String, creatorId: String, playerConfig: Binding<PlayerConfig>) {
         self.id = id
-        _vm = .init(wrappedValue: ViewModel(creatorId: creatorId, channelId: id))
+        _vm = .init(wrappedValue: ViewModel(creatorId: creatorId, channelId: id, playerConfig: playerConfig))
         
     }
     
@@ -37,7 +37,7 @@ struct ChannelView: View {
                                 .foregroundColor(.white)
                         }.frame(alignment: .leading)
                     }
-                    RecentsView(creatorId: self.vm.creator!.id, channelId: id, scrollEnabled: .constant(false))
+                    RecentsView(creatorId: self.vm.creator!.id, channelId: id, scrollEnabled: .constant(false), playerConfig: $vm.playerConfig)
                 }
             }.frame(maxHeight: .infinity)
         }
