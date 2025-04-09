@@ -19,13 +19,14 @@ struct RecentsPageView: View {
             shouldRefresh = true
         }
         .scrollDisabled(!scrollEnabled)
-        .onAppear {
-           AppDelegate.rotateScreen(to: .portrait)
-           AppDelegate.orientationLock = .portrait
-        }.onDisappear {
-           AppDelegate.orientationLock = .allButUpsideDown
-           AppDelegate.rotateScreen(to: .portrait)
-        }.navigationTitle("Recent Posts")
+//        .onAppear {
+//           AppDelegate.rotateScreen(to: .portrait)
+//           AppDelegate.orientationLock = .portrait
+//        }.onDisappear {
+//           AppDelegate.orientationLock = .allButUpsideDown
+//           AppDelegate.rotateScreen(to: .portrait)
+//        }
+        .navigationTitle("Recent Posts")
 
     }
 }

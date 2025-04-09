@@ -185,7 +185,7 @@ struct VideoPlayerWrapperView: View {
 //            }
 //        )
         .frame(width: videoPlayerSize.width, height: videoPlayerSize.height)
-        .frame(width: size.width)
+//        .frame(width: size.width)
         .zIndex(10000)
         .onChange(of: currentQuality) { newQuality in
             let newURL = URL(string: videoURL + (newQuality?.url ?? ""))!
@@ -309,14 +309,21 @@ struct VideoPlayerWrapperView: View {
 
     func toggleRotation() {
         if isRotated {
+            
             withAnimation(.easeInOut(duration: 0.2)) {
                 isRotated = false
             }
             AppDelegate.rotateScreen(to: .portrait)
         } else {
+
             withAnimation(.easeInOut(duration: 0.2)) {
                 isRotated = true
             }
+            let videoPlayerSize: CGSize = .init(
+                width: isRotated ? size.width + safeArea.bottom + safeArea.top : playerConfig.progress > 0.9 ? (120 + ((size.width-120) - ((size.width-120) * playerConfig.progress))) : size.width,
+                height: isRotated ? size.height + safeArea.leading + safeArea.trailing : desiredHeight
+            )
+            print(videoPlayerSize)
             AppDelegate.rotateScreen(to: .landscape)
         }
     }

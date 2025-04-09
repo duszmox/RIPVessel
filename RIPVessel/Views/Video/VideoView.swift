@@ -83,7 +83,7 @@ struct VideoView: View {
                         }
                         isRotated = orientation == .landscapeLeft || orientation == .landscapeRight
                     }
-                }
+                }.frame(height: isRotated ? 0 : nil)
                 .toolbar(.hidden, for: .tabBar)
             }
         }
