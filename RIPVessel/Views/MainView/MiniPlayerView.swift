@@ -7,148 +7,74 @@
 
 import SwiftUI
 
+// MARK: - Main MiniPlayerView
+
 struct MiniPlayerView: View {
     var size: CGSize
     @Binding var config: PlayerConfig
     var close: () -> Void
 
-    /// Player Configuration
+    // Fixed sizes and computed heights
     let miniPlayerHeight: CGFloat = 50
     let playerHeight: CGFloat
-
     private var tabBarHeight: CGFloat {
         safeArea.bottom + 49
     }
 
     @StateObject private var vm: VideoView.ViewModel
-    
+    @State private var isRotated = false
+
     init(size: CGSize, config: Binding<PlayerConfig>, close: @escaping () -> Void, isRotated: Bool = false) {
         self.size = size
         _config = config
         self.close = close
         self.isRotated = isRotated
-        _vm = .init(wrappedValue: VideoView.ViewModel(post: config.wrappedValue.selectedPlayerItem))
+        // Instantiate the view model using the selected player item
+        _vm = StateObject(wrappedValue: VideoView.ViewModel(post: config.wrappedValue.selectedPlayerItem))
         self.playerHeight = size.width / 16 * 9
     }
-    @State private var isRotated = false
 
     var body: some View {
         GeometryReader { geometry in
-            let progress = config.progress > 0.7 ? (config.progress - 0.7) / 0.3 : 0
+            // Compute the progress used for various animations and opacity changes
+            let progress: CGFloat = config.progress > 0.7 ? (config.progress - 0.7) / 0.3 : 0
+
             VStack(spacing: 0) {
+                // Top section: video content + overlay controls
                 ZStack(alignment: isRotated ? .center : .top) {
-                    if let stream = vm.stream {
-                        // Use the outer GeometryReader's size
-                        let size = geometry.size
-                        let width = size.width - 120
-                        let height = size.height
-                        VideoPlayerWrapperView(
-                            videoURL: stream.groups.first?.origins?.first?.url ?? "",
-                            currentQuality: $vm.currentQuality,
-                            qualities: vm.qualities,
-                            size: size,
-                            safeArea: EdgeInsets(
-                                top: safeArea.top,
-                                leading: safeArea.left,
-                                bottom: safeArea.bottom,
-                                trailing: safeArea.right
-                            ),
-                            isRotated: $isRotated,
-                            title: vm.video?.title ?? "",
-                            initialProgress: vm.video?.progress,
-                            playerConfig: $config,
-                            observeProgress: { p in
-                                vm.uploadProgress(p)
-                            }
-                        )
-                        .frame(
-                            width: 120 + (width - (width * progress)),
-                            height: height
-                        )
-                        .aspectRatio(16/9, contentMode: .fit)
-                        .opacity(vm.isHidden ? 0 : 1)
-                    }
-
-                    HStack(spacing: 10) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(vm.video?.title ?? "")
-                                .font(.callout)
-                                .lineLimit(1)
-                            Text(vm.post?.channel.title ?? "")
-                                .font(.caption)
-                                .foregroundStyle(.gray)
-                        }
-                        Spacer()
-
-                        Button(action: {}, label: {
-                            Image(systemName: "pause.fill")
-                                .font(.title2)
-                                .frame(width: 35, height: 35)
-                        })
-
-                        Button(action: close, label: {
-                            Image(systemName: "xmark")
-                                .font(.title2)
-                                .frame(width: 35, height: 35)
-                        })
-                    }
-                    .padding(.leading, 130)
-                    .padding(.trailing, 15)
-                    .foregroundStyle(Color.primary)
-                    .opacity(progress)
+                    MiniPlayerVideoContentView(
+                        stream: vm.stream,
+                        geometry: geometry,
+                        progress: progress,
+                        isRotated: isRotated,
+                        vm: vm,
+                        config: $config
+                    )
+                    MiniPlayerOverlayView(
+                        vm: vm,
+                        close: close,
+                        progress: progress
+                    )
                 }
-                .frame(minHeight: miniPlayerHeight, maxHeight: isRotated ? nil : playerHeight)
+                .frame(minHeight: miniPlayerHeight, maxHeight: playerHeight)
                 .zIndex(1)
                 .onRotate { orientation in
+                    // Ignore upside-down and face-up orientations
                     if orientation == .portraitUpsideDown || orientation == .faceUp { return }
                     isRotated = orientation == .landscapeLeft || orientation == .landscapeRight
                 }
 
-                if let post = vm.post {
-                    ScrollView {
-                        VStack {
-                            HStack {
-                                Text(vm.video?.title ?? "")
-                                    .font(.title)
-                                    .bold()
-                                    .padding()
-                                Spacer()
-                            }
-
-                            HStack {
-                                Button {
-                                    vm.like()
-                                } label: {
-                                    Image(systemName: (post.userInteraction?.contains(.like) ?? false) ?
-                                          "hand.thumbsup.fill" : "hand.thumbsup")
-                                    Text(String(post.likes))
-                                }
-
-                                Button {
-                                    vm.dislike()
-                                } label: {
-                                    Image(systemName: (post.userInteraction?.contains(.dislike) ?? false) ?
-                                          "hand.thumbsdown.fill" : "hand.thumbsdown")
-                                    Text(String(post.dislikes))
-                                }
-                                Spacer()
-                            }
-                            .padding()
-
-                            CollapsibleAsyncAttributedTextView(htmlString: vm.description)
-                                .padding()
-
-                            Spacer()
-                        }
-                    }
-                    .frame(height: isRotated ? 0 : nil)
-                    .opacity(1.0 - (config.progress * 1.6))
-                }
+                // Bottom section: detailed view (scrollable)
+                MiniPlayerDetailView(
+                    vm: vm,
+                    isRotated: isRotated,
+                    progress: config.progress
+                )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .background(.background)
             .clipped()
-            .contentShape(.rect)
+            .contentShape(Rectangle())
             .offset(y: config.progress * -(safeArea.bottom + 49))
             .frame(height: geometry.size.height - config.position, alignment: .top)
             .frame(maxHeight: .infinity, alignment: .bottom)
@@ -156,14 +82,19 @@ struct MiniPlayerView: View {
                 DragGesture()
                     .onChanged { value in
                         let start = value.startLocation.y
-                        guard start < playerHeight || start > (geometry.size.height - (tabBarHeight + miniPlayerHeight)) else { return }
+                        // Ensure the gesture only triggers in the top or bottom regions
+                        guard start < playerHeight ||
+                              start > (geometry.size.height - (tabBarHeight + miniPlayerHeight))
+                        else { return }
                         let height = config.lastPosition + value.translation.height
                         config.position = min(height, (geometry.size.height - miniPlayerHeight))
                         generateProgress(size: geometry.size)
                     }
                     .onEnded { value in
                         let start = value.startLocation.y
-                        guard start < playerHeight || start > (geometry.size.height - (tabBarHeight + miniPlayerHeight)) else { return }
+                        guard start < playerHeight ||
+                              start > (geometry.size.height - (tabBarHeight + miniPlayerHeight))
+                        else { return }
                         let velocity = value.velocity.height * 5
                         withAnimation(.smooth(duration: 0.3)) {
                             if (config.position + velocity) > (geometry.size.height * 0.65) {
@@ -204,8 +135,140 @@ struct MiniPlayerView: View {
         }
     }
 
+    // Helper method for updating the progress based on drag gesture and available height.
     func generateProgress(size: CGSize) {
         let progress = max(min(config.position / (size.height - miniPlayerHeight), 1.0), .zero)
         config.progress = progress
+    }
+}
+
+// MARK: - Subview: Video Content
+
+struct MiniPlayerVideoContentView: View {
+    var stream: Components.Schemas.CdnDeliveryV3Response?
+    var geometry: GeometryProxy
+    var progress: CGFloat
+    var isRotated: Bool
+    @ObservedObject var vm: VideoView.ViewModel
+    @Binding var config: PlayerConfig
+
+    var body: some View {
+        if let stream = stream {
+            let size = geometry.size
+            let width = size.width - 120
+            let height = size.width / (16 * 9)
+            VideoPlayerWrapperView(
+                videoURL: stream.groups.first?.origins?.first?.url ?? "",
+                currentQuality: $vm.currentQuality,
+                qualities: vm.qualities,
+                size: size,
+                safeArea: EdgeInsets(
+                    top: safeArea.top,
+                    leading: safeArea.left,
+                    bottom: safeArea.bottom,
+                    trailing: safeArea.right
+                ),
+                // The rotation binding here is read-only.
+                isRotated: Binding(get: { isRotated }, set: { _ in }),
+                title: vm.video?.title ?? "",
+                initialProgress: vm.video?.progress,
+                playerConfig: $config,
+                observeProgress: { p in
+                    vm.uploadProgress(p)
+                }
+            )
+            .frame(
+                width: 120 + (width - (width * progress)),
+                height: height + 30
+            )
+            .aspectRatio(16/9, contentMode: .fit)
+            .opacity(vm.isHidden ? 0 : 1)
+            .padding(.leading, 0)
+            .padding(.trailing, isRotated ? 0 : width)
+        }
+    }
+}
+
+// MARK: - Subview: Overlay (Title and Controls)
+
+struct MiniPlayerOverlayView: View {
+    @ObservedObject var vm: VideoView.ViewModel
+    var close: () -> Void
+    var progress: CGFloat
+
+    var body: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(vm.video?.title ?? "")
+                    .font(.callout)
+                    .lineLimit(1)
+                Text(vm.post?.channel.title ?? "")
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+            }
+            Spacer()
+            Button(action: {}, label: {
+                Image(systemName: "pause.fill")
+                    .font(.title2)
+                    .frame(width: 35, height: 35)
+            })
+            Button(action: close, label: {
+                Image(systemName: "xmark")
+                    .font(.title2)
+                    .frame(width: 35, height: 35)
+            })
+        }
+        .padding(.leading, 130)
+        .padding(.trailing, 15)
+        .foregroundStyle(Color.primary)
+        .opacity(progress)
+    }
+}
+
+// MARK: - Subview: Details
+
+struct MiniPlayerDetailView: View {
+    @ObservedObject var vm: VideoView.ViewModel
+    let isRotated: Bool
+    let progress: CGFloat
+
+    var body: some View {
+        if let post = vm.post {
+            ScrollView {
+                VStack {
+                    HStack {
+                        Text(vm.video?.title ?? "")
+                            .font(.title)
+                            .bold()
+                            .padding()
+                        Spacer()
+                    }
+                    HStack {
+                        Button {
+                            vm.like()
+                        } label: {
+                            Image(systemName: (post.userInteraction?.contains(.like) ?? false)
+                                  ? "hand.thumbsup.fill" : "hand.thumbsup")
+                            Text(String(post.likes))
+                        }
+                        Button {
+                            vm.dislike()
+                        } label: {
+                            Image(systemName: (post.userInteraction?.contains(.dislike) ?? false)
+                                  ? "hand.thumbsdown.fill" : "hand.thumbsdown")
+                            Text(String(post.dislikes))
+                        }
+                        Spacer()
+                    }
+                    .padding()
+                    CollapsibleAsyncAttributedTextView(htmlString: vm.description)
+                        .padding()
+                    Spacer()
+                }
+            }
+            // Hide the detail view when rotated; adjust opacity with progress.
+            .frame(height: isRotated ? 0 : nil)
+            .opacity(1.0 - (progress * 1.6))
+        }
     }
 }
