@@ -10,7 +10,7 @@ import SwiftData
 
 struct CreatorsView: View {
     @StateObject private var vm = ViewModel()
-    
+    @Binding var playerConfig: PlayerConfig
     var body: some View {
         VStack {
             ScrollView {
@@ -27,7 +27,7 @@ struct CreatorsView: View {
                         ForEach(creator.channels, id: \.id) { channel in
                             HStack {
                                 NavigationLink {
-                                    ChannelView(id: channel.id, creatorId: creator.id)
+                                    ChannelView(id: channel.id, creatorId: creator.id, playerConfig: $playerConfig)
                                 } label: {
                                     IconView(url: channel.icon.path, size: CGSize(width: 33, height: 33)).frame(width: 33, height: 33).clipShape(Circle())
                                     Text(channel.title)

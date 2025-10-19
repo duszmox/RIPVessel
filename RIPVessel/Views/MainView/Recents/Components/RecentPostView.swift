@@ -10,24 +10,29 @@ import SwiftUI
 struct RecentPostView: View {
     @StateObject private var vm: ViewModel
     @StateObject private var router = Router.shared
+    @Binding var playerConfig: PlayerConfig
     var progress: Int?
     var updateProgress: (String) -> Void
+    var onTap: () -> Void
 
-    init(post: Components.Schemas.BlogPostModelV3, isSpecificChannel: Bool = false, progress: Int?, updateProgress: @escaping (String) -> Void) {
+    init(post: Components.Schemas.BlogPostModelV3, isSpecificChannel: Bool = false, progress: Int?, playerConfig: Binding<PlayerConfig>, updateProgress: @escaping (String) -> Void, onTap: @escaping () -> Void) {
         _vm = StateObject(wrappedValue: ViewModel(post: post, isSpecificChannel: isSpecificChannel))
         self.progress = progress
         self.updateProgress = updateProgress
+        self.onTap = onTap
+        _playerConfig = playerConfig
     }
     
     var body: some View {
         VStack(alignment: .leading) {
             if let thumbnail = vm.post.thumbnail?.value1.path {
-                NavigationLink {
-                    VideoView(post: vm.post, updateProgress: updateProgress)
-                } label: {
+
                     ZStack(alignment: .bottomTrailing) {
                         IconView(url: thumbnail)
                             .aspectRatio(16/9, contentMode: .fit)
+                            .onTapGesture {
+                                onTap()
+                            }
                         HStack {
                             if vm.post.metadata.hasVideo {
                                 let text = vm.post.metadata.videoDuration.asString(style: .positional)
@@ -52,18 +57,16 @@ struct RecentPostView: View {
                                         .frame(width: geometry.size.width * (CGFloat(progress) / 100),
                                                height: 10)
                                 }
-
                             }
                             .frame(height: 10)
                         }
                     }.cornerRadius(8).padding([.leading, .trailing], 4)
-                }
             }
             
             HStack(alignment: .top, spacing: 10) {
                 if let channel = vm.getChannelModel(from: vm.post.channel) {
                     NavigationLink {
-                        ChannelView(id: channel.id, creatorId: vm.post.creator.id )
+                        ChannelView(id: channel.id, creatorId: vm.post.creator.id, playerConfig: $playerConfig)
                     } label: {
                         IconView(url: channel.icon.path )
                             .frame(width: 40, height: 40)
@@ -84,9 +87,6 @@ struct RecentPostView: View {
                     Text("\(vm.getChannelModel(from: vm.post.channel)?.title ?? "") • \(vm.post.releaseDate.timeAgoString())")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                        .onTapGesture {
-                            print("channel clicked")
-                        }
                 }
             }
             .padding([.horizontal, .bottom], 8)

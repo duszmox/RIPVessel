@@ -11,14 +11,15 @@ struct RecentsView: View {
     @StateObject private var vm: ViewModel
     @Binding var scrollEnabled: Bool
     @Binding var shouldRefresh: Bool
-
+    @Binding var playerConfig: PlayerConfig
     @State var isSpecificChannel: Bool
 
-    init(creatorId: String? = nil, channelId: String? = nil, scrollEnabled: Binding<Bool> = .constant(true), shouldRefresh: Binding<Bool> = .constant(false)) {
+    init(creatorId: String? = nil, channelId: String? = nil, scrollEnabled: Binding<Bool> = .constant(true), shouldRefresh: Binding<Bool> = .constant(false), playerConfig: Binding<PlayerConfig>) {
         _vm = .init(wrappedValue: .init(creatorId: creatorId, channelId: channelId))
         _scrollEnabled = scrollEnabled
         _isSpecificChannel = .init(initialValue: creatorId != nil || channelId != nil)
         _shouldRefresh = shouldRefresh
+        _playerConfig = playerConfig
     }
 
     var body: some View {
@@ -29,7 +30,13 @@ struct RecentsView: View {
                 LoadingRecentPostView()
             }
             ForEach(vm.recents, id: \.id) { recent in
-                RecentPostView(post: recent, isSpecificChannel: isSpecificChannel, progress: vm.progresses[recent.id], updateProgress: vm.updateProgress)
+                RecentPostView(post: recent, isSpecificChannel: isSpecificChannel, progress: vm.progresses[recent.id], playerConfig: $playerConfig, updateProgress: vm.updateProgress) {
+                    playerConfig.selectedPlayerItem = recent
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        playerConfig.showMiniPlayer = true
+                    }
+                }
+                
                         .onAppear {
                             Task {
                                 if recent.id == vm.recents.last?.id {
