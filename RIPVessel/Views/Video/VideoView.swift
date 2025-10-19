@@ -23,7 +23,17 @@ struct VideoView: View {
     
     var body: some View {
         GeometryReader { geometry in
+            let aspectWidth = CGFloat(vm.currentQuality?.meta?.video?.value2.width ?? 16)
+            let aspectHeight = CGFloat(vm.currentQuality?.meta?.video?.value2.height ?? 9)
+            let aspectRatio = aspectWidth / max(aspectHeight, .leastNonzeroMagnitude)
+            let videoHeight = geometry.size.width / aspectRatio
             ZStack(alignment: .top) {
+                if !isRotated {
+                    Color.black
+                        .frame(height: geometry.safeAreaInsets.top)
+                        .frame(maxWidth: .infinity)
+                        .allowsHitTesting(false)
+                }
                 if let stream = vm.stream {
                     VideoPlayerWrapperView(
                         videoURL: (stream.groups.first?.origins?.first?.url ?? ""),
@@ -39,13 +49,13 @@ struct VideoView: View {
                             vm.uploadProgress(p)
                         }
                     )
-                    .aspectRatio(16/9, contentMode: .fit)
+                    .frame(maxWidth: .infinity, alignment: .top)
                     .zIndex(10000)
                 }
                 ScrollView {
                     VStack {
-                        Rectangle().aspectRatio(16/9, contentMode: .fit)
-                            .frame(width: geometry.size.width, height: geometry.size.height/3.5)
+                        Rectangle()
+                            .frame(width: geometry.size.width, height: videoHeight)
                             .opacity(0)
                         
                         HStack {
