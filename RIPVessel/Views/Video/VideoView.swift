@@ -23,7 +23,7 @@ struct VideoView: View {
     
     var body: some View {
         GeometryReader { geometry in
-            ZStack(alignment: isRotated ? .center : .top) {
+            ZStack(alignment: .top) {
                 if let stream = vm.stream {
                     VideoPlayerWrapperView(
                         videoURL: (stream.groups.first?.origins?.first?.url ?? ""),
@@ -86,7 +86,10 @@ struct VideoView: View {
                 }.frame(height: isRotated ? 0 : nil)
                 .toolbar(.hidden, for: .tabBar)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(isRotated ? Color.black : Color(.systemBackground))
         }
+        .ignoresSafeArea(edges: .top)
         .onAppear(perform: {
             AppDelegate.orientationLock = .allButUpsideDown
             AppDelegate.rotateScreen(to: .portrait)

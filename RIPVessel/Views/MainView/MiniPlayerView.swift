@@ -15,10 +15,11 @@ struct MiniPlayerView: View {
     var close: () -> Void
 
     // Fixed sizes and computed heights
-    let miniPlayerHeight: CGFloat = 50
+    private let collapsedVideoWidth: CGFloat = 120
+    let miniPlayerHeight: CGFloat
     let playerHeight: CGFloat
     private var tabBarHeight: CGFloat {
-        safeArea.bottom + 49
+        safeArea.bottom + CGFloat(49)
     }
 
     @StateObject private var vm: VideoView.ViewModel
@@ -29,15 +30,17 @@ struct MiniPlayerView: View {
         _config = config
         self.close = close
         self.isRotated = isRotated
+        self.miniPlayerHeight = collapsedVideoWidth * (CGFloat(9) / CGFloat(16))
         // Instantiate the view model using the selected player item
         _vm = StateObject(wrappedValue: VideoView.ViewModel(post: config.wrappedValue.selectedPlayerItem))
-        self.playerHeight = size.width / 16 * 9
+        self.playerHeight = size.width * (CGFloat(9) / CGFloat(16))
     }
 
     var body: some View {
         GeometryReader { geometry in
-            // Compute the progress used for various animations and opacity changes
-            let progress: CGFloat = config.progress > 0.7 ? (config.progress - 0.7) / 0.3 : 0
+            // Compute progress values that drive the mini player layout and overlays
+            let clampedProgress: CGFloat = max(min(config.progress, CGFloat(1)), CGFloat(0))
+            let overlayProgress: CGFloat = clampedProgress > CGFloat(0.7) ? (clampedProgress - CGFloat(0.7)) / CGFloat(0.3) : 0
 
             VStack(spacing: 0) {
                 // Top section: video content + overlay controls
@@ -45,15 +48,18 @@ struct MiniPlayerView: View {
                     MiniPlayerVideoContentView(
                         stream: vm.stream,
                         geometry: geometry,
-                        progress: progress,
-                        isRotated: isRotated,
+                        progress: clampedProgress,
+                        collapsedWidth: collapsedVideoWidth,
+                        collapsedHeight: miniPlayerHeight,
+                        isRotated: $isRotated,
                         vm: vm,
-                        config: $config
+                        config: $config,
                     )
                     MiniPlayerOverlayView(
                         vm: vm,
                         close: close,
-                        progress: progress
+                        progress: overlayProgress,
+                        collapsedWidth: collapsedVideoWidth
                     )
                 }
                 .frame(minHeight: miniPlayerHeight, maxHeight: playerHeight)
@@ -68,39 +74,56 @@ struct MiniPlayerView: View {
                 MiniPlayerDetailView(
                     vm: vm,
                     isRotated: isRotated,
-                    progress: config.progress
+                    progress: clampedProgress
                 )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(.background)
+            .background(isRotated ? Color.black : Color(.systemBackground))
             .clipped()
             .contentShape(Rectangle())
-            .offset(y: config.progress * -(safeArea.bottom + 49))
+            .offset(y: config.progress * -(safeArea.bottom + CGFloat(49)))
             .frame(height: geometry.size.height - config.position, alignment: .top)
             .frame(maxHeight: .infinity, alignment: .bottom)
             .gesture(
                 DragGesture()
                     .onChanged { value in
                         let start = value.startLocation.y
+                        let canDragFromStart = isRotated ||
+                        start < playerHeight ||
+                        start > (geometry.size.height - (tabBarHeight + miniPlayerHeight))
                         // Ensure the gesture only triggers in the top or bottom regions
-                        guard start < playerHeight ||
-                              start > (geometry.size.height - (tabBarHeight + miniPlayerHeight))
+                        guard canDragFromStart
                         else { return }
+                        if isRotated {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isRotated = false
+                            }
+                            AppDelegate.rotateScreen(to: .portrait)
+                        }
                         let height = config.lastPosition + value.translation.height
-                        config.position = min(height, (geometry.size.height - miniPlayerHeight))
+                        let clampedHeight = max(.zero, min(height, geometry.size.height - miniPlayerHeight))
+                        config.position = clampedHeight
                         generateProgress(size: geometry.size)
                     }
                     .onEnded { value in
                         let start = value.startLocation.y
-                        guard start < playerHeight ||
-                              start > (geometry.size.height - (tabBarHeight + miniPlayerHeight))
+                        let canDragFromStart = isRotated ||
+                        start < playerHeight ||
+                        start > (geometry.size.height - (tabBarHeight + miniPlayerHeight))
+                        guard canDragFromStart
                         else { return }
-                        let velocity = value.velocity.height * 5
+                        let velocity = value.velocity.height * CGFloat(5)
                         withAnimation(.smooth(duration: 0.3)) {
-                            if (config.position + velocity) > (geometry.size.height * 0.65) {
+                            if (config.position + velocity) > (geometry.size.height * CGFloat(0.65)) {
+                                if isRotated {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        isRotated = false
+                                    }
+                                    AppDelegate.rotateScreen(to: .portrait)
+                                }
                                 config.position = (geometry.size.height - miniPlayerHeight)
                                 config.lastPosition = config.position
-                                config.progress = 1
+                                config.progress = CGFloat(1)
                             } else {
                                 config.resetPosition()
                             }
@@ -114,7 +137,7 @@ struct MiniPlayerView: View {
                         }
                     })
             )
-            .transition(.offset(y: config.progress == 1 ? tabBarHeight : geometry.size.height))
+            .transition(.offset(y: config.progress == CGFloat(1) ? tabBarHeight : geometry.size.height))
             .onChange(of: config.selectedPlayerItem) { newValue in
                 vm.updatePost(newValue)
                 withAnimation(.smooth(duration: 0.3)) {
@@ -137,7 +160,7 @@ struct MiniPlayerView: View {
 
     // Helper method for updating the progress based on drag gesture and available height.
     func generateProgress(size: CGSize) {
-        let progress = max(min(config.position / (size.height - miniPlayerHeight), 1.0), .zero)
+        let progress = max(min(config.position / (size.height - miniPlayerHeight), CGFloat(1)), .zero)
         config.progress = progress
     }
 }
@@ -148,15 +171,21 @@ struct MiniPlayerVideoContentView: View {
     var stream: Components.Schemas.CdnDeliveryV3Response?
     var geometry: GeometryProxy
     var progress: CGFloat
-    var isRotated: Bool
+    var collapsedWidth: CGFloat
+    var collapsedHeight: CGFloat
+    @Binding var isRotated: Bool
     @ObservedObject var vm: VideoView.ViewModel
     @Binding var config: PlayerConfig
 
     var body: some View {
         if let stream = stream {
             let size = geometry.size
-            let width = size.width - 120
-            let height = size.width / (16 * 9)
+            let expandedWidth = size.width
+            let expandedHeight = size.width * (CGFloat(9) / CGFloat(16))
+            let videoWidth = expandedWidth - (expandedWidth - collapsedWidth) * progress
+            let videoHeight = expandedHeight - (expandedHeight - collapsedHeight) * progress
+            let alignment: Alignment = isRotated ? .center : .leading
+
             VideoPlayerWrapperView(
                 videoURL: stream.groups.first?.origins?.first?.url ?? "",
                 currentQuality: $vm.currentQuality,
@@ -168,8 +197,7 @@ struct MiniPlayerVideoContentView: View {
                     bottom: safeArea.bottom,
                     trailing: safeArea.right
                 ),
-                // The rotation binding here is read-only.
-                isRotated: Binding(get: { isRotated }, set: { _ in }),
+                isRotated: $isRotated,
                 title: vm.video?.title ?? "",
                 initialProgress: vm.video?.progress,
                 playerConfig: $config,
@@ -177,14 +205,13 @@ struct MiniPlayerVideoContentView: View {
                     vm.uploadProgress(p)
                 }
             )
-            .frame(
-                width: 120 + (width - (width * progress)),
-                height: height + 30
-            )
-            .aspectRatio(16/9, contentMode: .fit)
+            .frame(width: videoWidth, height: videoHeight)
             .opacity(vm.isHidden ? 0 : 1)
-            .padding(.leading, 0)
-            .padding(.trailing, isRotated ? 0 : width)
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: isRotated ? .infinity : nil,
+                alignment: alignment
+            )
         }
     }
 }
@@ -195,6 +222,7 @@ struct MiniPlayerOverlayView: View {
     @ObservedObject var vm: VideoView.ViewModel
     var close: () -> Void
     var progress: CGFloat
+    var collapsedWidth: CGFloat
 
     var body: some View {
         HStack(spacing: 10) {
@@ -218,8 +246,8 @@ struct MiniPlayerOverlayView: View {
                     .frame(width: 35, height: 35)
             })
         }
-        .padding(.leading, 130)
-        .padding(.trailing, 15)
+        .padding(.leading, collapsedWidth + CGFloat(10))
+        .padding(.trailing, CGFloat(15))
         .foregroundStyle(Color.primary)
         .opacity(progress)
     }
@@ -234,6 +262,7 @@ struct MiniPlayerDetailView: View {
 
     var body: some View {
         if let post = vm.post {
+            let detailOpacity = max(CGFloat.zero, CGFloat(1) - (progress * CGFloat(1.6)))
             ScrollView {
                 VStack {
                     HStack {
@@ -267,8 +296,8 @@ struct MiniPlayerDetailView: View {
                 }
             }
             // Hide the detail view when rotated; adjust opacity with progress.
-            .frame(height: isRotated ? 0 : nil)
-            .opacity(1.0 - (progress * 1.6))
+            .frame(height: isRotated ? CGFloat.zero : nil)
+            .opacity(detailOpacity)
         }
     }
 }

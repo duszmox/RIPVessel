@@ -5,7 +5,7 @@
 //  Created by Gyula Kiri on 2024. 07. 27..
 //
 
-import SwiftUICore
+import SwiftUI
 import UIKit
 
 struct DeviceRotationViewModifier: ViewModifier {

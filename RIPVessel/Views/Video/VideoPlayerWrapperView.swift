@@ -70,12 +70,22 @@ struct VideoPlayerWrapperView: View {
     }
 
     var body: some View {
-        let progress = playerConfig.progress > 0.7 ? (playerConfig.progress - 0.7) / 0.3 : 0
-        
-        let videoPlayerSize: CGSize = .init(
-            width: isRotated ? size.height + safeArea.bottom + safeArea.top : playerConfig.progress > 0.9 ? (120 + ((size.width-120) - ((size.width-120) * playerConfig.progress))) : size.width,
-            height: isRotated ? size.width + safeArea.leading + safeArea.trailing : desiredHeight
-        )
+        let miniPlayerProgress = max(min(playerConfig.progress, CGFloat(1)), CGFloat(0))
+        let collapsedWidth: CGFloat = 120
+        let collapsedHeight = collapsedWidth / max(aspectRatio, CGFloat(0.1))
+
+        let videoPlayerSize: CGSize = {
+            if isRotated {
+                return .init(
+                    width: size.height + safeArea.bottom + safeArea.top,
+                    height: size.width + safeArea.leading + safeArea.trailing
+                )
+            } else {
+                let width = size.width - (size.width - collapsedWidth) * miniPlayerProgress
+                let targetHeight = desiredHeight - (desiredHeight - collapsedHeight) * miniPlayerProgress
+                return .init(width: width, height: max(collapsedHeight, targetHeight))
+            }
+        }()
 
         ZStack(alignment: .center) {
             VideoPlayerView(
@@ -92,7 +102,7 @@ struct VideoPlayerWrapperView: View {
                 videoOverlays
             }
             .onTapGesture {
-                guard playerConfig.progress != 1 else { return }
+                guard playerConfig.progress != CGFloat(1) else { return }
                 withAnimation(.easeInOut(duration: 0.35)) {
                     showPlayerControls.toggle()
                 }
@@ -125,7 +135,8 @@ struct VideoPlayerWrapperView: View {
                         }
                     }
                 )
-                .offset(y: isRotated ? -15 : 0).opacity(playerConfig.progress == 0 ? 1 : 0)
+                .offset(y: isRotated ? CGFloat(-15) : .zero)
+                .opacity(playerConfig.progress == .zero ? 1 : 0)
             }
             .overlay(alignment: .bottom) {
                 BottomControlsView(
@@ -138,7 +149,7 @@ struct VideoPlayerWrapperView: View {
                     safeArea: safeArea,
                     toggleRotation: toggleRotation
                 )
-                .offset(y: isRotated ? -15 : 0)
+                .offset(y: isRotated ? CGFloat(-15) : .zero)
             }
             .overlay(alignment: .top) {
                 TopControlsView(
@@ -319,11 +330,6 @@ struct VideoPlayerWrapperView: View {
             withAnimation(.easeInOut(duration: 0.2)) {
                 isRotated = true
             }
-            let videoPlayerSize: CGSize = .init(
-                width: isRotated ? size.width + safeArea.bottom + safeArea.top : playerConfig.progress > 0.9 ? (120 + ((size.width-120) - ((size.width-120) * playerConfig.progress))) : size.width,
-                height: isRotated ? size.height + safeArea.leading + safeArea.trailing : desiredHeight
-            )
-            print(videoPlayerSize)
             AppDelegate.rotateScreen(to: .landscape)
         }
     }
